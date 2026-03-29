@@ -70,3 +70,23 @@ create policy "anyone can insert reviews"
 create policy "anyone can read reviews"
   on reviews for select
   using (true);
+
+create table review_comments (
+  id uuid primary key default gen_random_uuid(),
+  review_id uuid not null references reviews(id) on delete cascade,
+  member_id uuid not null references members(id) on delete cascade,
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+create index review_comments_review_id_idx on review_comments(review_id);
+
+alter table review_comments enable row level security;
+
+create policy "anyone can insert review_comments"
+  on review_comments for insert
+  with check (true);
+
+create policy "anyone can read review_comments"
+  on review_comments for select
+  using (true);
