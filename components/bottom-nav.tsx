@@ -13,7 +13,7 @@ export function BottomNav() {
 
   useEffect(() => {
     setGroupId(localStorage.getItem("group_id"));
-  }, []);
+  }, [pathname]);
 
   const visible = APP_PATHS.some((p) => pathname.startsWith(p));
   if (!visible || !groupId) return null;

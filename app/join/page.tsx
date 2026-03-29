@@ -82,7 +82,13 @@ function JoinForm() {
       localStorage.setItem("session_token", existing.session_token);
       localStorage.setItem("group_id", groupId);
       localStorage.setItem("member_id", existing.id);
-      router.push(redirect || `/group/${groupId}`);
+      if (
+        redirect &&
+        /^\/(books|reviews|members)\//.test(redirect)
+      ) {
+        sessionStorage.setItem("bookorry-back-to-feed", groupId);
+      }
+      router.replace(redirect || `/group/${groupId}`);
       return;
     }
 
@@ -103,7 +109,13 @@ function JoinForm() {
     localStorage.setItem("session_token", sessionToken);
     localStorage.setItem("group_id", groupId);
     localStorage.setItem("member_id", newMember.id);
-    router.push(redirect || `/group/${groupId}`);
+    if (
+      redirect &&
+      /^\/(books|reviews|members)\//.test(redirect)
+    ) {
+      sessionStorage.setItem("bookorry-back-to-feed", groupId);
+    }
+    router.replace(redirect || `/group/${groupId}`);
   }
 
   function joinQuerySuffix() {

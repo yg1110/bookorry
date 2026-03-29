@@ -83,7 +83,7 @@ export default function MemberPage({
 
   return (
     <>
-      <Header title={member.nickname} />
+      <Header title={member.nickname} backHref={`/group/${member.group_id}`} />
       <main className="flex flex-col px-4 pb-24 pt-6">
       <div className="mx-auto w-full max-w-md space-y-6">
 

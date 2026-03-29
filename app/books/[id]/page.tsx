@@ -151,7 +151,7 @@ export default function BookPage({
 
   return (
     <>
-      <Header title={book.title} />
+      <Header title={book.title} backHref={`/group/${book.group_id}`} />
       <main className="flex flex-col px-4 pb-24 pt-6">
       <div className="mx-auto w-full max-w-md space-y-6">
 

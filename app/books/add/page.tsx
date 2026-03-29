@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Header } from "@/components/header";
@@ -15,6 +15,7 @@ interface KakaoBook {
 
 export default function AddBookPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<KakaoBook[]>([]);
   const [searching, setSearching] = useState(false);
@@ -25,7 +26,7 @@ export default function AddBookPage() {
 
   useEffect(() => {
     setGroupId(localStorage.getItem("group_id"));
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -73,7 +74,10 @@ export default function AddBookPage() {
 
   return (
     <>
-      <Header title="책 추가" />
+      <Header
+        title="책 추가"
+        backHref={groupId ? `/group/${groupId}` : undefined}
+      />
       <main className="flex flex-col px-4 pb-24 pt-4">
       <div className="mx-auto w-full max-w-md space-y-4">
 

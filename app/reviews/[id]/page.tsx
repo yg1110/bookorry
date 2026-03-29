@@ -166,7 +166,14 @@ export default function ReviewPage({
 
   return (
     <>
-      <Header title="독후감" />
+      <Header
+        title="독후감"
+        backHref={
+          review.books?.group_id
+            ? `/group/${review.books.group_id}`
+            : undefined
+        }
+      />
       <main className="flex flex-col px-4 pt-6 pb-24">
         <div className="mx-auto w-full max-w-md space-y-6">
           {/* 책 정보 */}
