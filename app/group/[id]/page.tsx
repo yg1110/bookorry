@@ -77,7 +77,7 @@ export default function GroupPage({
             "id, content, reviewed_at, members(nickname), books(id, title, thumbnail)",
           )
           .eq("books.group_id", id)
-          .order("created_at", { ascending: false })
+          .order("reviewed_at", { ascending: false })
           .limit(30),
       ]);
 
