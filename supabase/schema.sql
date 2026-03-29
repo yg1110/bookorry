@@ -51,3 +51,22 @@ create policy "anyone can insert books"
 create policy "anyone can read books"
   on books for select
   using (true);
+
+create table books (                                                                                                                                             
+    id uuid primary key default gen_random_uuid(),
+    group_id uuid not null references groups(id) on delete cascade,                                                                                                
+    title text not null,                                                                                                                                           
+    author text not null,
+    thumbnail text,                                                                                                                                                
+    registered_at timestamptz not null default now()                                                                                                               
+  );
+                                                                                                                                                                   
+  alter table books enable row level security;                                                                                                                     
+   
+  create policy "anyone can insert books"                                                                                                                          
+    on books for insert                                     
+    with check (true);                                                                                                                                             
+   
+  create policy "anyone can read books"                                                                                                                            
+    on books for select                                     
+    using (true);
