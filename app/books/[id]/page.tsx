@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { supabase } from "@/lib/supabase";
 
 interface Book {
@@ -16,9 +18,21 @@ interface Book {
 interface Review {
   id: string;
   content: string;
-  created_at: string;
-  members: { nickname: string } | null;
+  reviewed_at: string;
+  members: { id: string; nickname: string } | null;
 }
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 
 export default function BookPage({
   params,
@@ -31,6 +45,7 @@ export default function BookPage({
   const [book, setBook] = useState<Book | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [content, setContent] = useState("");
+  const [reviewedAt, setReviewedAt] = useState(() => new Date());
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [memberId, setMemberId] = useState<string | null>(null);
@@ -43,9 +58,9 @@ export default function BookPage({
         supabase.from("books").select("id, title, author, thumbnail, group_id").eq("id", id).single(),
         supabase
           .from("reviews")
-          .select("id, content, created_at, members(nickname)")
+          .select("id, content, reviewed_at, members(id, nickname)")
           .eq("book_id", id)
-          .order("created_at", { ascending: false }),
+          .order("reviewed_at", { ascending: false }),
       ]);
 
       if (bookRes.error || !bookRes.data) {
@@ -79,13 +94,19 @@ export default function BookPage({
 
     const { data, error } = await supabase
       .from("reviews")
-      .insert({ book_id: book.id, member_id: memberId, content: content.trim() })
-      .select("id, content, created_at, members(nickname)")
+      .insert({
+        book_id: book.id,
+        member_id: memberId,
+        content: content.trim(),
+        reviewed_at: reviewedAt.toISOString(),
+      })
+      .select("id, content, reviewed_at, members(id, nickname)")
       .single();
 
     if (!error && data) {
       setReviews((prev) => [data as Review, ...prev]);
       setContent("");
+      setReviewedAt(new Date());
     }
 
     setSubmitting(false);
@@ -104,7 +125,6 @@ export default function BookPage({
   return (
     <main className="flex min-h-svh flex-col px-4 pb-24 pt-10">
       <div className="mx-auto w-full max-w-md space-y-6">
-        {/* 뒤로 */}
         <button onClick={() => router.back()} className="text-sm text-gray-400">
           ← 뒤로
         </button>
@@ -131,6 +151,7 @@ export default function BookPage({
         {/* 독후감 작성 */}
         {memberId ? (
           <form onSubmit={handleSubmit} className="space-y-3">
+            <DateTimePicker value={reviewedAt} onChange={setReviewedAt} />
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -164,19 +185,33 @@ export default function BookPage({
             </p>
           ) : (
             reviews.map((review) => (
-              <div key={review.id} className="rounded-2xl bg-gray-50 px-4 py-4">
+              <Link
+                key={review.id}
+                href={`/reviews/${review.id}`}
+                className="block rounded-2xl bg-gray-50 px-4 py-4"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold">
-                    {review.members?.nickname ?? "알 수 없음"}
-                  </span>
+                  {review.members ? (
+                    <button
+                      className="text-xs font-semibold underline decoration-dotted"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push(`/members/${review.members!.id}`);
+                      }}
+                    >
+                      {review.members.nickname}
+                    </button>
+                  ) : (
+                    <span className="text-xs font-semibold text-gray-400">알 수 없음</span>
+                  )}
                   <span className="text-xs text-gray-400">
-                    {new Date(review.created_at).toLocaleDateString("ko-KR")}
+                    {formatDate(review.reviewed_at)}
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">
+                <p className="mt-2 line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap">
                   {review.content}
                 </p>
-              </div>
+              </Link>
             ))
           )}
         </section>

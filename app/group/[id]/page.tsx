@@ -27,7 +27,7 @@ interface Group {
 interface FeedItem {
   id: string;
   content: string;
-  created_at: string;
+  reviewed_at: string;
   members: { nickname: string } | null;
   books: { id: string; title: string; thumbnail: string | null } | null;
 }
@@ -56,7 +56,7 @@ export default function GroupPage({
         supabase.from("members").select("id, nickname").eq("group_id", id).order("created_at", { ascending: true }),
         supabase
           .from("reviews")
-          .select("id, content, created_at, members(nickname), books(id, title, thumbnail)")
+          .select("id, content, reviewed_at, members(nickname), books(id, title, thumbnail)")
           .eq("books.group_id", id)
           .order("created_at", { ascending: false })
           .limit(30),
@@ -116,12 +116,13 @@ export default function GroupPage({
         {/* 멤버 */}
         <div className="flex flex-wrap gap-2">
           {members.map((m) => (
-            <span
+            <Link
               key={m.id}
+              href={`/members/${m.id}`}
               className="rounded-full border border-gray-200 px-3 py-1 text-xs"
             >
               {m.nickname}
-            </span>
+            </Link>
           ))}
         </div>
 
@@ -176,7 +177,13 @@ export default function GroupPage({
                       {item.members?.nickname}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {new Date(item.created_at).toLocaleDateString("ko-KR")}
+                      {new Date(item.reviewed_at).toLocaleString("ko-KR", {
+                        month: "short",
+                        day: "numeric",
+                        weekday: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </span>
                   </div>
                 </Link>
