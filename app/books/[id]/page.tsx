@@ -177,9 +177,14 @@ export default function BookPage({
         {/* 카카오 공유 */}
         <KakaoShareButton
           title={book.title}
-          description={`${book.author} · 독후감 ${reviews.length}개`}
+          description={
+            inviteCode
+              ? `${book.author} · 독후감 ${reviews.length}개 · 링크로 그룹에 참여한 뒤 이 책 페이지로 이동해요`
+              : `${book.author} · 독후감 ${reviews.length}개`
+          }
           imageUrl={book.thumbnail}
           path={`/books/${book.id}`}
+          inviteCode={inviteCode}
         />
 
         {/* 독후감 작성 or 참여 CTA */}

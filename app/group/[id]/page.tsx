@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Copy } from "lucide-react";
 
+import { KakaoShareButton } from "@/components/kakao-share-button";
 import { Header } from "@/components/header";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import { relationOne } from "@/lib/supabase-relations";
@@ -145,6 +146,13 @@ export default function GroupPage({
       />
       <main className="flex flex-col px-4 pt-4 pb-24">
         <div className="mx-auto w-full max-w-md space-y-6">
+          <KakaoShareButton
+            title={group.name}
+            description={`독서 모임에 초대해요 · 멤버 ${members.length}명 · 책 ${books.length}권 · 링크로 참여 후 이 방으로 들어올 수 있어요`}
+            path={`/group/${group.id}`}
+            inviteCode={group.invite_code}
+          />
+
           {/* 멤버 */}
           <div className="flex flex-wrap gap-2">
             {members.map((m) => (

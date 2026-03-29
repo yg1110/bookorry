@@ -18,10 +18,30 @@ interface KakaoShareButtonProps {
   title: string;
   description: string;
   imageUrl?: string | null;
+  /** 공유 후 열 경로 (예: /books/uuid, /group/uuid) */
   path: string;
+  /** 있으면 링크가 초대(참여) 후 redirect 로 이어지도록 /join?code=…&redirect=… 형태가 됨 */
+  inviteCode?: string | null;
 }
 
-export function KakaoShareButton({ title, description, imageUrl, path }: KakaoShareButtonProps) {
+function buildShareUrl(origin: string, path: string, inviteCode?: string | null) {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  if (inviteCode) {
+    const q = new URLSearchParams();
+    q.set("code", inviteCode);
+    q.set("redirect", p);
+    return `${origin}/join?${q.toString()}`;
+  }
+  return `${origin}${p}`;
+}
+
+export function KakaoShareButton({
+  title,
+  description,
+  imageUrl,
+  path,
+  inviteCode,
+}: KakaoShareButtonProps) {
   function handleShare() {
     const kakao = window.Kakao;
     if (!kakao) return;
@@ -30,7 +50,9 @@ export function KakaoShareButton({ title, description, imageUrl, path }: KakaoSh
       kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY!);
     }
 
-    const url = `${window.location.origin}${path}`;
+    const origin = window.location.origin;
+    const url = buildShareUrl(origin, path, inviteCode);
+    const buttonTitle = inviteCode ? "참여하고 보기" : "열기";
 
     kakao.Share.sendDefault({
       objectType: "feed",
@@ -42,7 +64,7 @@ export function KakaoShareButton({ title, description, imageUrl, path }: KakaoSh
       },
       buttons: [
         {
-          title: "독후감 보기",
+          title: buttonTitle,
           link: { mobileWebUrl: url, webUrl: url },
         },
       ],
