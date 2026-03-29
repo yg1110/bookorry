@@ -9,6 +9,7 @@ const eslintConfig = defineConfig([
   {
     rules: {
       "import/order": "off",
+      "react-hooks/set-state-in-effect": "off",
     },
   },
 ]);

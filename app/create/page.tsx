@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Header } from "@/components/header";
 import { supabase } from "@/lib/supabase";
 
 function generateInviteCode() {
@@ -50,11 +51,11 @@ export default function CreatePage() {
       return;
     }
 
-    const { error: memberError } = await supabase.from("members").insert({
-      group_id: group.id,
-      nickname: nickname.trim(),
-      session_token: sessionToken,
-    });
+    const { data: member, error: memberError } = await supabase
+      .from("members")
+      .insert({ group_id: group.id, nickname: nickname.trim(), session_token: sessionToken })
+      .select()
+      .single();
 
     if (memberError) {
       setError("멤버 등록에 실패했습니다. 다시 시도해주세요.");
@@ -64,6 +65,7 @@ export default function CreatePage() {
 
     localStorage.setItem("session_token", sessionToken);
     localStorage.setItem("group_id", group.id);
+    localStorage.setItem("member_id", member.id);
     setInviteCode(code);
     setGroupId(group.id);
     setLoading(false);
@@ -111,15 +113,10 @@ export default function CreatePage() {
   }
 
   return (
-    <main className="flex min-h-svh flex-col px-6 py-12">
-      <div className="w-full max-w-sm mx-auto space-y-8">
-        <div>
-          <button onClick={() => router.back()} className="text-sm text-gray-400">
-            ← 뒤로
-          </button>
-          <h1 className="mt-4 text-2xl font-bold">그룹 만들기</h1>
-        </div>
-
+    <>
+      <Header title="그룹 만들기" />
+      <main className="flex flex-col px-6 pb-10 pt-6">
+      <div className="w-full max-w-sm mx-auto space-y-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">그룹 이름</label>
@@ -157,5 +154,6 @@ export default function CreatePage() {
         </form>
       </div>
     </main>
+    </>
   );
 }

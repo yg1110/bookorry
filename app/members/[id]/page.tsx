@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
+import { Header } from "@/components/header";
 import { supabase } from "@/lib/supabase";
 
 interface Member {
@@ -69,11 +70,10 @@ export default function MemberPage({
   if (!member) return null;
 
   return (
-    <main className="flex min-h-svh flex-col px-4 pb-24 pt-10">
+    <>
+      <Header title={member.nickname} />
+      <main className="flex flex-col px-4 pb-24 pt-6">
       <div className="mx-auto w-full max-w-md space-y-6">
-        <button onClick={() => router.back()} className="text-sm text-gray-400">
-          ← 뒤로
-        </button>
 
         {/* 프로필 */}
         <div className="flex items-center gap-4">
@@ -134,5 +134,6 @@ export default function MemberPage({
         </section>
       </div>
     </main>
+    </>
   );
 }

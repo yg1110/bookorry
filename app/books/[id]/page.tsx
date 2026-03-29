@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
 import { KakaoShareButton } from "@/components/kakao-share-button";
+import { Header } from "@/components/header";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { supabase } from "@/lib/supabase";
 
@@ -135,11 +136,10 @@ export default function BookPage({
     : "/";
 
   return (
-    <main className="flex min-h-svh flex-col px-4 pb-24 pt-10">
+    <>
+      <Header title={book.title} />
+      <main className="flex flex-col px-4 pb-24 pt-6">
       <div className="mx-auto w-full max-w-md space-y-6">
-        <button onClick={() => router.back()} className="text-sm text-gray-400">
-          ← 뒤로
-        </button>
 
         {/* 책 정보 */}
         <div className="flex gap-4">
@@ -243,5 +243,6 @@ export default function BookPage({
         </section>
       </div>
     </main>
+    </>
   );
 }

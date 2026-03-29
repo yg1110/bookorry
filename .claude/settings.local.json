@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx:*)",
+      "Bash(grep -o --[a-zA-Z-]* /Users/yg/Documents/bookorry/node_modules/@base-ui/react/popover/index.d.ts)",
+      "Bash(xargs cat:*)"
     ]
   }
 }

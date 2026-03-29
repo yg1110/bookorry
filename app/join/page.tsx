@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { Header } from "@/components/header";
 import { supabase } from "@/lib/supabase";
 
 function generateToken() {
@@ -15,27 +16,40 @@ function JoinForm() {
   const code = searchParams.get("code") ?? "";
   const redirect = searchParams.get("redirect") ?? "";
 
+  const [manualCode, setManualCode] = useState("");
   const [nickname, setNickname] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [groupName, setGroupName] = useState("");
   const [groupId, setGroupId] = useState("");
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(() => Boolean(code));
 
   useEffect(() => {
     if (!code) {
       setChecking(false);
+      setGroupId("");
+      setGroupName("");
+      setError("");
       return;
     }
 
+    setChecking(true);
+    setError("");
+    setGroupId("");
+    setGroupName("");
+
+    let cancelled = false;
+
     async function checkCode() {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from("groups")
         .select("id, name")
         .eq("invite_code", code.toUpperCase())
         .single();
 
-      if (error || !data) {
+      if (cancelled) return;
+
+      if (fetchError || !data) {
         setError("유효하지 않은 초대코드예요.");
       } else {
         setGroupId(data.id);
@@ -45,6 +59,9 @@ function JoinForm() {
     }
 
     checkCode();
+    return () => {
+      cancelled = true;
+    };
   }, [code]);
 
   async function handleJoin(e: React.FormEvent) {
@@ -64,17 +81,18 @@ function JoinForm() {
     if (existing) {
       localStorage.setItem("session_token", existing.session_token);
       localStorage.setItem("group_id", groupId);
+      localStorage.setItem("member_id", existing.id);
       router.push(redirect || `/group/${groupId}`);
       return;
     }
 
     const sessionToken = generateToken();
 
-    const { error: memberError } = await supabase.from("members").insert({
-      group_id: groupId,
-      nickname: nickname.trim(),
-      session_token: sessionToken,
-    });
+    const { data: newMember, error: memberError } = await supabase
+      .from("members")
+      .insert({ group_id: groupId, nickname: nickname.trim(), session_token: sessionToken })
+      .select()
+      .single();
 
     if (memberError) {
       setError("참여에 실패했습니다. 다시 시도해주세요.");
@@ -84,7 +102,21 @@ function JoinForm() {
 
     localStorage.setItem("session_token", sessionToken);
     localStorage.setItem("group_id", groupId);
+    localStorage.setItem("member_id", newMember.id);
     router.push(redirect || `/group/${groupId}`);
+  }
+
+  function joinQuerySuffix() {
+    return redirect
+      ? `?redirect=${encodeURIComponent(redirect)}`
+      : "";
+  }
+
+  function goToJoinWithCode(nextCode: string) {
+    const q = new URLSearchParams();
+    q.set("code", nextCode);
+    if (redirect) q.set("redirect", redirect);
+    router.push(`/join?${q.toString()}`);
   }
 
   if (checking) {
@@ -95,39 +127,97 @@ function JoinForm() {
     );
   }
 
-  if (!code || (error && !groupId)) {
+  if (!code) {
     return (
-      <main className="flex min-h-svh flex-col items-center justify-center px-6">
-        <div className="w-full max-w-sm space-y-4 text-center">
-          <p className="text-4xl">😅</p>
-          <p className="font-semibold">
-            {!code ? "초대코드가 없어요." : error}
-          </p>
-          <button
-            onClick={() => router.push("/")}
-            className="w-full rounded-2xl bg-black py-4 text-sm font-semibold text-white"
-          >
-            홈으로
-          </button>
-        </div>
-      </main>
+      <>
+        <Header title="그룹 참여하기" />
+        <main className="flex flex-col px-6 pb-10 pt-6">
+          <div className="mx-auto w-full max-w-sm space-y-6">
+            <p className="text-sm text-gray-500">
+              다른 그룹에 참여하려면 초대코드를 입력해 주세요.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const c = manualCode.trim().toUpperCase();
+                if (!c) return;
+                goToJoinWithCode(c);
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-2">
+                <label htmlFor="invite-code" className="text-sm font-medium">
+                  초대코드
+                </label>
+                <input
+                  id="invite-code"
+                  type="text"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+                  placeholder="예: ABC12XYZ"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-4 text-sm tracking-widest outline-none focus:border-black"
+                  maxLength={32}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!manualCode.trim()}
+                className="w-full rounded-2xl bg-black py-4 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                다음
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="w-full text-sm text-gray-400 underline-offset-4 hover:underline"
+            >
+              홈으로
+            </button>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  if (error && !groupId) {
+    return (
+      <>
+        <Header title="그룹 참여하기" />
+        <main className="flex min-h-svh flex-col items-center justify-center px-6 pb-24">
+          <div className="w-full max-w-sm space-y-4 text-center">
+            <p className="text-4xl">😅</p>
+            <p className="font-semibold">{error}</p>
+            <button
+              type="button"
+              onClick={() => router.push(`/join${joinQuerySuffix()}`)}
+              className="w-full rounded-2xl bg-black py-4 text-sm font-semibold text-white"
+            >
+              다른 코드로 참여하기
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="w-full text-sm text-gray-400 underline-offset-4 hover:underline"
+            >
+              홈으로
+            </button>
+          </div>
+        </main>
+      </>
     );
   }
 
   return (
-    <main className="flex min-h-svh flex-col px-6 py-12">
-      <div className="mx-auto w-full max-w-sm space-y-8">
-        <div>
-          <button onClick={() => router.back()} className="text-sm text-gray-400">
-            ← 뒤로
-          </button>
-          <h1 className="mt-4 text-2xl font-bold">그룹 참여하기</h1>
-          {redirect && (
-            <p className="mt-1 text-xs text-gray-400">
-              참여 후 공유된 페이지로 이동해요
-            </p>
-          )}
-        </div>
+    <>
+      <Header title="그룹 참여하기" />
+      <main className="flex flex-col px-6 pb-10 pt-6">
+      <div className="mx-auto w-full max-w-sm space-y-6">
+        {redirect && (
+          <p className="text-xs text-gray-400">참여 후 공유된 페이지로 이동해요</p>
+        )}
 
         <div className="rounded-2xl bg-gray-50 px-4 py-4">
           <p className="text-xs text-gray-400">참여할 그룹</p>
@@ -162,6 +252,7 @@ function JoinForm() {
         </form>
       </div>
     </main>
+    </>
   );
 }
 

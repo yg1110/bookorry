@@ -1,9 +1,11 @@
 "use client";
 
+import { Copy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
+import { Header } from "@/components/header";
 import { supabase } from "@/lib/supabase";
 
 interface Book {
@@ -95,23 +97,22 @@ export default function GroupPage({
   if (!group) return null;
 
   return (
-    <main className="flex min-h-svh flex-col px-4 pb-24 pt-10">
-      <div className="mx-auto w-full max-w-md space-y-6">
-        {/* 헤더 */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{group.name}</h1>
-            <button onClick={handleCopy} className="mt-1 text-xs text-gray-400">
-              {copied ? "복사됐어요 ✓" : `초대코드: ${group.invite_code}`}
-            </button>
-          </div>
-          <Link
-            href="/books/add"
-            className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white"
+    <>
+      <Header
+        title={group.name}
+        back={false}
+        right={
+          <button
+            onClick={handleCopy}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 active:bg-gray-100"
+            title="초대코드 복사"
           >
-            + 책 추가
-          </Link>
-        </div>
+            {copied ? <span className="text-xs text-green-600">✓</span> : <Copy size={18} />}
+          </button>
+        }
+      />
+      <main className="flex flex-col px-4 pb-24 pt-4">
+      <div className="mx-auto w-full max-w-md space-y-6">
 
         {/* 멤버 */}
         <div className="flex flex-wrap gap-2">
@@ -236,5 +237,6 @@ export default function GroupPage({
         )}
       </div>
     </main>
+    </>
   );
 }

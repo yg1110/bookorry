@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { Header } from "@/components/header";
 import { supabase } from "@/lib/supabase";
 
 interface KakaoBook {
@@ -71,14 +72,10 @@ export default function AddBookPage() {
   }
 
   return (
-    <main className="flex min-h-svh flex-col px-4 py-10">
-      <div className="mx-auto w-full max-w-md space-y-6">
-        <div>
-          <button onClick={() => router.back()} className="text-sm text-gray-400">
-            ← 뒤로
-          </button>
-          <h1 className="mt-4 text-2xl font-bold">책 추가</h1>
-        </div>
+    <>
+      <Header title="책 추가" />
+      <main className="flex flex-col px-4 pb-24 pt-4">
+      <div className="mx-auto w-full max-w-md space-y-4">
 
         <input
           type="search"
@@ -136,5 +133,6 @@ export default function AddBookPage() {
         </ul>
       </div>
     </main>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
+import { Header } from "@/components/header";
 import { supabase } from "@/lib/supabase";
 
 interface Review {
@@ -56,11 +57,10 @@ export default function ReviewPage({
   if (!review) return null;
 
   return (
-    <main className="flex min-h-svh flex-col px-4 pb-24 pt-10">
+    <>
+      <Header title="독후감" />
+      <main className="flex flex-col px-4 pb-24 pt-6">
       <div className="mx-auto w-full max-w-md space-y-6">
-        <button onClick={() => router.back()} className="text-sm text-gray-400">
-          ← 뒤로
-        </button>
 
         {/* 책 정보 */}
         {review.books && (
@@ -114,5 +114,6 @@ export default function ReviewPage({
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{review.content}</p>
       </div>
     </main>
+    </>
   );
 }
