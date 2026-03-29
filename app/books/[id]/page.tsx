@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
+import { KakaoShareButton } from "@/components/kakao-share-button";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { supabase } from "@/lib/supabase";
 
@@ -13,6 +14,7 @@ interface Book {
   author: string;
   thumbnail: string | null;
   group_id: string;
+  groups: { invite_code: string } | null;
 }
 
 interface Review {
@@ -32,7 +34,6 @@ function formatDate(dateStr: string) {
     minute: "2-digit",
   });
 }
-
 
 export default function BookPage({
   params,
@@ -55,7 +56,11 @@ export default function BookPage({
       const sessionToken = localStorage.getItem("session_token");
 
       const [bookRes, reviewsRes] = await Promise.all([
-        supabase.from("books").select("id, title, author, thumbnail, group_id").eq("id", id).single(),
+        supabase
+          .from("books")
+          .select("id, title, author, thumbnail, group_id, groups(invite_code)")
+          .eq("id", id)
+          .single(),
         supabase
           .from("reviews")
           .select("id, content, reviewed_at, members(id, nickname)")
@@ -68,7 +73,8 @@ export default function BookPage({
         return;
       }
 
-      setBook(bookRes.data);
+      const bookData = bookRes.data as Book;
+      setBook(bookData);
       setReviews((reviewsRes.data as Review[]) ?? []);
 
       if (sessionToken) {
@@ -76,6 +82,7 @@ export default function BookPage({
           .from("members")
           .select("id")
           .eq("session_token", sessionToken)
+          .eq("group_id", bookData.group_id)
           .single();
         if (member) setMemberId(member.id);
       }
@@ -122,6 +129,11 @@ export default function BookPage({
 
   if (!book) return null;
 
+  const inviteCode = book.groups?.invite_code;
+  const joinUrl = inviteCode
+    ? `/join?code=${inviteCode}&redirect=/books/${book.id}`
+    : "/";
+
   return (
     <main className="flex min-h-svh flex-col px-4 pb-24 pt-10">
       <div className="mx-auto w-full max-w-md space-y-6">
@@ -148,7 +160,15 @@ export default function BookPage({
           </div>
         </div>
 
-        {/* 독후감 작성 */}
+        {/* 카카오 공유 */}
+        <KakaoShareButton
+          title={book.title}
+          description={`${book.author} · 독후감 ${reviews.length}개`}
+          imageUrl={book.thumbnail}
+          path={`/books/${book.id}`}
+        />
+
+        {/* 독후감 작성 or 참여 CTA */}
         {memberId ? (
           <form onSubmit={handleSubmit} className="space-y-3">
             <DateTimePicker value={reviewedAt} onChange={setReviewedAt} />
@@ -168,9 +188,15 @@ export default function BookPage({
             </button>
           </form>
         ) : (
-          <p className="text-center text-sm text-gray-400">
-            그룹에 참여해야 독후감을 남길 수 있어요.
-          </p>
+          <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-6 text-center">
+            <p className="text-sm text-gray-500">독후감을 남기려면 그룹에 참여하세요</p>
+            <Link
+              href={joinUrl}
+              className="mt-3 inline-block rounded-2xl bg-black px-6 py-2.5 text-sm font-semibold text-white"
+            >
+              그룹 참여하기
+            </Link>
+          </div>
         )}
 
         {/* 독후감 목록 */}

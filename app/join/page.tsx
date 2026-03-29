@@ -13,6 +13,7 @@ function JoinForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get("code") ?? "";
+  const redirect = searchParams.get("redirect") ?? "";
 
   const [nickname, setNickname] = useState("");
   const [loading, setLoading] = useState(false);
@@ -53,7 +54,6 @@ function JoinForm() {
     setLoading(true);
     setError("");
 
-    // 동일 닉네임 멤버가 이미 있으면 기존 정보 사용
     const { data: existing } = await supabase
       .from("members")
       .select("id, session_token")
@@ -64,7 +64,7 @@ function JoinForm() {
     if (existing) {
       localStorage.setItem("session_token", existing.session_token);
       localStorage.setItem("group_id", groupId);
-      router.push(`/group/${groupId}`);
+      router.push(redirect || `/group/${groupId}`);
       return;
     }
 
@@ -84,7 +84,7 @@ function JoinForm() {
 
     localStorage.setItem("session_token", sessionToken);
     localStorage.setItem("group_id", groupId);
-    router.push(`/group/${groupId}`);
+    router.push(redirect || `/group/${groupId}`);
   }
 
   if (checking) {
@@ -122,6 +122,11 @@ function JoinForm() {
             ← 뒤로
           </button>
           <h1 className="mt-4 text-2xl font-bold">그룹 참여하기</h1>
+          {redirect && (
+            <p className="mt-1 text-xs text-gray-400">
+              참여 후 공유된 페이지로 이동해요
+            </p>
+          )}
         </div>
 
         <div className="rounded-2xl bg-gray-50 px-4 py-4">
