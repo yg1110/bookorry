@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
 import { Header } from "@/components/header";
+import { relationOne } from "@/lib/supabase-relations";
 import { supabase } from "@/lib/supabase";
 
 interface Member {
@@ -52,7 +53,17 @@ export default function MemberPage({
         .order("reviewed_at", { ascending: false });
 
       setMember(memberData);
-      setReviews((reviewsData as Review[]) ?? []);
+
+      type ReviewRow = Omit<Review, "books"> & {
+        books: Review["books"] | NonNullable<Review["books"]>[];
+      };
+      const raw = (reviewsData as ReviewRow[] | null) ?? [];
+      setReviews(
+        raw.map((row) => ({
+          ...row,
+          books: relationOne(row.books),
+        })),
+      );
       setLoading(false);
     }
 

@@ -7,6 +7,7 @@ import { use, useEffect, useState } from "react";
 import { KakaoShareButton } from "@/components/kakao-share-button";
 import { Header } from "@/components/header";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { relationOne } from "@/lib/supabase-relations";
 import { supabase } from "@/lib/supabase";
 
 interface Book {
@@ -74,9 +75,25 @@ export default function BookPage({
         return;
       }
 
-      const bookData = bookRes.data as Book;
+      const rawBook = bookRes.data as Omit<Book, "groups"> & {
+        groups: { invite_code: string } | { invite_code: string }[] | null;
+      };
+      const bookData: Book = {
+        ...rawBook,
+        groups: relationOne(rawBook.groups),
+      };
       setBook(bookData);
-      setReviews((reviewsRes.data as Review[]) ?? []);
+
+      const rawReviews =
+        (reviewsRes.data as (Omit<Review, "members"> & {
+          members: Review["members"] | NonNullable<Review["members"]>[];
+        })[]) ?? [];
+      setReviews(
+        rawReviews.map((r) => ({
+          ...r,
+          members: relationOne(r.members),
+        })),
+      );
 
       if (sessionToken) {
         const { data: member } = await supabase
@@ -112,7 +129,14 @@ export default function BookPage({
       .single();
 
     if (!error && data) {
-      setReviews((prev) => [data as Review, ...prev]);
+      const row = data as Omit<Review, "members"> & {
+        members: Review["members"] | NonNullable<Review["members"]>[];
+      };
+      const added: Review = {
+        ...row,
+        members: relationOne(row.members),
+      };
+      setReviews((prev) => [added, ...prev]);
       setContent("");
       setReviewedAt(new Date());
     }

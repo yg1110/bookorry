@@ -1,11 +1,12 @@
 "use client";
 
+import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useCallback, useEffect, useState } from "react";
 
 import { Header } from "@/components/header";
 import { supabase } from "@/lib/supabase";
+import { relationOne } from "@/lib/supabase-relations";
 
 interface Review {
   id: string;
@@ -29,6 +30,19 @@ interface ReviewComment {
   members: { id: string; nickname: string } | null;
 }
 
+type ReviewBookRow = Omit<NonNullable<Review["books"]>, "groups"> & {
+  groups: NonNullable<Review["books"]>["groups"] | { invite_code: string }[];
+};
+
+type ReviewRow = Omit<Review, "members" | "books"> & {
+  members: Review["members"] | NonNullable<Review["members"]>[];
+  books: ReviewBookRow | ReviewBookRow[] | null;
+};
+
+type ReviewCommentRow = Omit<ReviewComment, "members"> & {
+  members: ReviewComment["members"] | NonNullable<ReviewComment["members"]>[];
+};
+
 export default function ReviewPage({
   params,
 }: {
@@ -50,7 +64,13 @@ export default function ReviewPage({
       .select("id, content, created_at, members(id, nickname)")
       .eq("review_id", reviewId)
       .order("created_at", { ascending: true });
-    setComments((data as ReviewComment[]) ?? []);
+    const raw = (data as ReviewCommentRow[] | null) ?? [];
+    setComments(
+      raw.map((row) => ({
+        ...row,
+        members: relationOne(row.members),
+      })),
+    );
   }, []);
 
   useEffect(() => {
@@ -70,7 +90,15 @@ export default function ReviewPage({
         return;
       }
 
-      const reviewData = data as Review;
+      const row = data as ReviewRow;
+      const bookRow = relationOne(row.books);
+      const reviewData: Review = {
+        ...row,
+        members: relationOne(row.members),
+        books: bookRow
+          ? { ...bookRow, groups: relationOne(bookRow.groups) }
+          : null,
+      };
       setReview(reviewData);
 
       const groupId = reviewData.books?.group_id;
@@ -108,7 +136,12 @@ export default function ReviewPage({
       .single();
 
     if (!error && data) {
-      setComments((prev) => [...prev, data as ReviewComment]);
+      const row = data as ReviewCommentRow;
+      const added: ReviewComment = {
+        ...row,
+        members: relationOne(row.members),
+      };
+      setComments((prev) => [...prev, added]);
       setCommentText("");
     }
 
@@ -133,130 +166,143 @@ export default function ReviewPage({
   return (
     <>
       <Header title="독후감" />
-      <main className="flex flex-col px-4 pb-24 pt-6">
-      <div className="mx-auto w-full max-w-md space-y-6">
+      <main className="flex flex-col px-4 pt-6 pb-24">
+        <div className="mx-auto w-full max-w-md space-y-6">
+          {/* 책 정보 */}
+          {review.books && (
+            <Link
+              href={`/books/${review.books.id}`}
+              className="flex items-center gap-3 rounded-2xl bg-gray-50 p-3"
+            >
+              {review.books.thumbnail ? (
+                <img
+                  src={review.books.thumbnail}
+                  alt={review.books.title}
+                  className="h-14 w-10 shrink-0 rounded object-cover"
+                />
+              ) : (
+                <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-gray-200 text-lg">
+                  📚
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="line-clamp-1 text-sm font-semibold">
+                  {review.books.title}
+                </p>
+                <p className="text-xs text-gray-400">{review.books.author}</p>
+              </div>
+            </Link>
+          )}
 
-        {/* 책 정보 */}
-        {review.books && (
-          <Link
-            href={`/books/${review.books.id}`}
-            className="flex items-center gap-3 rounded-2xl bg-gray-50 p-3"
-          >
-            {review.books.thumbnail ? (
-              <img
-                src={review.books.thumbnail}
-                alt={review.books.title}
-                className="h-14 w-10 shrink-0 rounded object-cover"
-              />
+          {/* 작성자 + 날짜 */}
+          <div className="flex items-center justify-between">
+            {review.members ? (
+              <Link
+                href={`/members/${review.members.id}`}
+                className="text-sm font-semibold underline decoration-dotted"
+              >
+                {review.members.nickname}
+              </Link>
             ) : (
-              <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-gray-200 text-lg">
-                📚
+              <span className="text-sm font-semibold text-gray-400">
+                알 수 없음
+              </span>
+            )}
+            <span className="text-xs text-gray-400">
+              {new Date(review.reviewed_at).toLocaleString("ko-KR", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                weekday: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+
+          {/* 본문 */}
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            {review.content}
+          </p>
+
+          {/* 댓글 */}
+          <section className="space-y-4 border-t border-gray-100 pt-6">
+            <h2 className="text-xs font-semibold tracking-widest text-gray-400 uppercase">
+              댓글 {comments.length}개
+            </h2>
+
+            {memberId ? (
+              <form onSubmit={handleCommentSubmit} className="space-y-2">
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="댓글을 입력하세요"
+                  rows={3}
+                  maxLength={500}
+                  className="w-full resize-none rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
+                />
+                <button
+                  type="submit"
+                  disabled={commentSubmitting || !commentText.trim()}
+                  className="w-full rounded-2xl bg-black py-3 text-sm font-semibold text-white disabled:opacity-40"
+                >
+                  {commentSubmitting ? "등록 중..." : "댓글 남기기"}
+                </button>
+              </form>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-5 text-center">
+                <p className="text-sm text-gray-500">
+                  댓글을 남기려면 같은 그룹에 참여해 주세요
+                </p>
+                <Link
+                  href={joinUrl}
+                  className="mt-3 inline-block rounded-2xl bg-black px-6 py-2.5 text-sm font-semibold text-white"
+                >
+                  그룹 참여하기
+                </Link>
               </div>
             )}
-            <div className="min-w-0">
-              <p className="line-clamp-1 text-sm font-semibold">{review.books.title}</p>
-              <p className="text-xs text-gray-400">{review.books.author}</p>
-            </div>
-          </Link>
-        )}
 
-        {/* 작성자 + 날짜 */}
-        <div className="flex items-center justify-between">
-          {review.members ? (
-            <Link
-              href={`/members/${review.members.id}`}
-              className="text-sm font-semibold underline decoration-dotted"
-            >
-              {review.members.nickname}
-            </Link>
-          ) : (
-            <span className="text-sm font-semibold text-gray-400">알 수 없음</span>
-          )}
-          <span className="text-xs text-gray-400">
-            {new Date(review.reviewed_at).toLocaleString("ko-KR", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              weekday: "short",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
+            {comments.length > 0 ? (
+              <ul className="space-y-3">
+                {comments.map((c) => (
+                  <li key={c.id} className="rounded-2xl bg-gray-50 px-4 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      {c.members ? (
+                        <Link
+                          href={`/members/${c.members.id}`}
+                          className="text-xs font-semibold underline decoration-dotted"
+                        >
+                          {c.members.nickname}
+                        </Link>
+                      ) : (
+                        <span className="text-xs font-semibold text-gray-400">
+                          알 수 없음
+                        </span>
+                      )}
+                      <time className="shrink-0 text-[10px] text-gray-400">
+                        {new Date(c.created_at).toLocaleString("ko-KR", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </time>
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">
+                      {c.content}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="py-2 text-center text-sm text-gray-400">
+                아직 댓글이 없어요
+              </p>
+            )}
+          </section>
         </div>
-
-        {/* 본문 */}
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{review.content}</p>
-
-        {/* 댓글 */}
-        <section className="space-y-4 border-t border-gray-100 pt-6">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-            댓글 {comments.length}개
-          </h2>
-
-          {memberId ? (
-            <form onSubmit={handleCommentSubmit} className="space-y-2">
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="댓글을 입력하세요"
-                rows={3}
-                maxLength={500}
-                className="w-full resize-none rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
-              />
-              <button
-                type="submit"
-                disabled={commentSubmitting || !commentText.trim()}
-                className="w-full rounded-2xl bg-black py-3 text-sm font-semibold text-white disabled:opacity-40"
-              >
-                {commentSubmitting ? "등록 중..." : "댓글 남기기"}
-              </button>
-            </form>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-5 text-center">
-              <p className="text-sm text-gray-500">댓글을 남기려면 같은 그룹에 참여해 주세요</p>
-              <Link
-                href={joinUrl}
-                className="mt-3 inline-block rounded-2xl bg-black px-6 py-2.5 text-sm font-semibold text-white"
-              >
-                그룹 참여하기
-              </Link>
-            </div>
-          )}
-
-          {comments.length > 0 ? (
-            <ul className="space-y-3">
-              {comments.map((c) => (
-                <li key={c.id} className="rounded-2xl bg-gray-50 px-4 py-3">
-                  <div className="flex items-center justify-between gap-2">
-                    {c.members ? (
-                      <Link
-                        href={`/members/${c.members.id}`}
-                        className="text-xs font-semibold underline decoration-dotted"
-                      >
-                        {c.members.nickname}
-                      </Link>
-                    ) : (
-                      <span className="text-xs font-semibold text-gray-400">알 수 없음</span>
-                    )}
-                    <time className="shrink-0 text-[10px] text-gray-400">
-                      {new Date(c.created_at).toLocaleString("ko-KR", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </time>
-                  </div>
-                  <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">{c.content}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="py-2 text-center text-sm text-gray-400">아직 댓글이 없어요</p>
-          )}
-        </section>
-      </div>
-    </main>
+      </main>
     </>
   );
 }
