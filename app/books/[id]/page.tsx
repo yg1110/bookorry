@@ -7,6 +7,7 @@ import { use, useEffect, useState } from "react";
 import { KakaoShareButton } from "@/components/kakao-share-button";
 import { Header } from "@/components/header";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { formatDisplayDate } from "@/lib/format-display-date";
 import { relationOne } from "@/lib/supabase-relations";
 import { supabase } from "@/lib/supabase";
 
@@ -24,17 +25,6 @@ interface Review {
   content: string;
   reviewed_at: string;
   members: { id: string; nickname: string } | null;
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export default function BookPage({
@@ -255,7 +245,7 @@ export default function BookPage({
                     <span className="text-xs font-semibold text-gray-400">알 수 없음</span>
                   )}
                   <span className="text-xs text-gray-400">
-                    {formatDate(review.reviewed_at)}
+                    {formatDisplayDate(review.reviewed_at)}
                   </span>
                 </div>
                 <p className="mt-2 line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap">

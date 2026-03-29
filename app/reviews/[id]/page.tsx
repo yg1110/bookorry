@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Header } from "@/components/header";
-import { supabase } from "@/lib/supabase";
+import { formatDisplayDate } from "@/lib/format-display-date";
 import { relationOne } from "@/lib/supabase-relations";
+import { supabase } from "@/lib/supabase";
 
 interface Review {
   id: string;
@@ -209,14 +210,7 @@ export default function ReviewPage({
               </span>
             )}
             <span className="text-xs text-gray-400">
-              {new Date(review.reviewed_at).toLocaleString("ko-KR", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                weekday: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+            {formatDisplayDate(review.reviewed_at)}
             </span>
           </div>
 
@@ -281,12 +275,7 @@ export default function ReviewPage({
                         </span>
                       )}
                       <time className="shrink-0 text-[10px] text-gray-400">
-                        {new Date(c.created_at).toLocaleString("ko-KR", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      {formatDisplayDate(c.created_at)}
                       </time>
                     </div>
                     <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">

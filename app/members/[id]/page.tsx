@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
 import { Header } from "@/components/header";
+import { formatDisplayDate } from "@/lib/format-display-date";
 import { relationOne } from "@/lib/supabase-relations";
 import { supabase } from "@/lib/supabase";
 
@@ -130,14 +131,7 @@ export default function MemberPage({
                   {review.content}
                 </p>
                 <p className="mt-2 text-xs text-gray-400">
-                  {new Date(review.reviewed_at).toLocaleString("ko-KR", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    weekday: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {formatDisplayDate(review.reviewed_at)}
                 </p>
               </Link>
             ))

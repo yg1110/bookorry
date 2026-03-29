@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { Copy } from "lucide-react";
 
 import { Header } from "@/components/header";
-import { supabase } from "@/lib/supabase";
+import { formatDisplayDate } from "@/lib/format-display-date";
 import { relationOne } from "@/lib/supabase-relations";
+import { supabase } from "@/lib/supabase";
 
 interface Book {
   id: string;
@@ -210,13 +211,7 @@ export default function GroupPage({
                         {item.members?.nickname}
                       </span>
                       <span className="text-xs text-gray-400">
-                        {new Date(item.reviewed_at).toLocaleString("ko-KR", {
-                          month: "short",
-                          day: "numeric",
-                          weekday: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatDisplayDate(item.reviewed_at)}
                       </span>
                     </div>
                   </Link>
