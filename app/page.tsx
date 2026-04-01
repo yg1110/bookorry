@@ -2,18 +2,36 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const router = useRouter();
   const [code, setCode] = useState("");
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const groupId = localStorage.getItem("group_id");
+    const sessionToken = localStorage.getItem("session_token");
+    if (groupId && sessionToken) {
+      router.replace(`/group/${groupId}`);
+      return;
+    }
+    setReady(true);
+  }, [router]);
 
   function handleJoin(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = code.trim().toUpperCase();
     if (!trimmed) return;
+    localStorage.removeItem("group_id");
+    localStorage.removeItem("session_token");
+    localStorage.removeItem("member_id");
+    localStorage.removeItem("invite_code");
+    localStorage.removeItem("nickname");
     router.push(`/join?code=${encodeURIComponent(trimmed)}`);
   }
+
+  if (!ready) return null;
 
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-10 px-6 py-12">

@@ -82,6 +82,8 @@ function JoinForm() {
       localStorage.setItem("session_token", existing.session_token);
       localStorage.setItem("group_id", groupId);
       localStorage.setItem("member_id", existing.id);
+      localStorage.setItem("invite_code", code.toUpperCase());
+      localStorage.setItem("nickname", nickname.trim());
       if (
         redirect &&
         /^\/(books|reviews|members)\//.test(redirect)
@@ -109,6 +111,8 @@ function JoinForm() {
     localStorage.setItem("session_token", sessionToken);
     localStorage.setItem("group_id", groupId);
     localStorage.setItem("member_id", newMember.id);
+    localStorage.setItem("invite_code", code.toUpperCase());
+    localStorage.setItem("nickname", nickname.trim());
     if (
       redirect &&
       /^\/(books|reviews|members)\//.test(redirect)
