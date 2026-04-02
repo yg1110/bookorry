@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 
 export default function Home() {
   const router = useRouter();
@@ -37,7 +37,9 @@ export default function Home() {
     <main className="flex min-h-svh flex-col items-center justify-center gap-10 px-6 py-12">
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-tight">📚 부코리</h1>
-        <p className="mt-2 text-sm text-gray-500">북클럽 독후감을 함께 기록해요</p>
+        <p className="mt-2 text-sm text-gray-500">
+          북클럽 독후감을 함께 기록해요
+        </p>
       </div>
 
       <div className="w-full max-w-sm space-y-4">

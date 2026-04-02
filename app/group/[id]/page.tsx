@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Copy } from "lucide-react";
 
 import { KakaoShareButton } from "@/components/kakao-share-button";
@@ -44,6 +44,7 @@ export default function GroupPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [group, setGroup] = useState<Group | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
@@ -51,7 +52,13 @@ export default function GroupPage({
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [tab, setTab] = useState<"feed" | "books">("feed");
+  const [tab, setTab] = useState<"feed" | "books">(
+    searchParams.get("tab") === "books" ? "books" : "feed"
+  );
+
+  useEffect(() => {
+    setTab(searchParams.get("tab") === "books" ? "books" : "feed");
+  }, [searchParams]);
 
   useEffect(() => {
     async function load() {
@@ -169,13 +176,13 @@ export default function GroupPage({
           {/* 탭 */}
           <div className="flex gap-4 border-b border-gray-100">
             <button
-              onClick={() => setTab("feed")}
+              onClick={() => router.replace(`/group/${id}`, { scroll: false })}
               className={`pb-2 text-sm font-semibold ${tab === "feed" ? "border-b-2 border-black text-black" : "text-gray-400"}`}
             >
               독후감 피드
             </button>
             <button
-              onClick={() => setTab("books")}
+              onClick={() => router.replace(`/group/${id}?tab=books`, { scroll: false })}
               className={`pb-2 text-sm font-semibold ${tab === "books" ? "border-b-2 border-black text-black" : "text-gray-400"}`}
             >
               책 목록 {books.length}
