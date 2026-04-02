@@ -59,6 +59,7 @@ export default function ReviewPage({
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [siblingIds, setSiblingIds] = useState<string[]>([]);
 
   const loadComments = useCallback(async (reviewId: string) => {
     const { data } = await supabase
@@ -102,6 +103,16 @@ export default function ReviewPage({
           : null,
       };
       setReview(reviewData);
+
+      // 같은 책의 독후감 목록 (날짜순)
+      if (reviewData.books?.id) {
+        const { data: siblings } = await supabase
+          .from("reviews")
+          .select("id")
+          .eq("book_id", reviewData.books.id)
+          .order("reviewed_at", { ascending: true });
+        setSiblingIds((siblings ?? []).map((r: { id: string }) => r.id));
+      }
 
       const groupId = reviewData.books?.group_id;
       if (sessionToken && groupId) {
@@ -181,6 +192,10 @@ export default function ReviewPage({
 
   if (!review) return null;
 
+  const currentIdx = siblingIds.indexOf(id);
+  const prevId = currentIdx > 0 ? siblingIds[currentIdx - 1] : null;
+  const nextId = currentIdx < siblingIds.length - 1 ? siblingIds[currentIdx + 1] : null;
+
   const inviteCode = review.books?.groups?.invite_code;
   const joinUrl = inviteCode
     ? `/join?code=${inviteCode}&redirect=/reviews/${review.id}`
@@ -222,6 +237,33 @@ export default function ReviewPage({
                 <p className="text-xs text-gray-400">{review.books.author}</p>
               </div>
             </Link>
+          )}
+
+          {/* 이전/다음 네비게이션 */}
+          {siblingIds.length > 1 && (
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => prevId && router.push(`/reviews/${prevId}`)}
+                disabled={!prevId}
+                className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-30"
+              >
+                <span className="text-base leading-none">‹</span>
+                이전
+              </button>
+              <span className="text-xs text-gray-400">
+                {currentIdx + 1} / {siblingIds.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => nextId && router.push(`/reviews/${nextId}`)}
+                disabled={!nextId}
+                className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-30"
+              >
+                다음
+                <span className="text-base leading-none">›</span>
+              </button>
+            </div>
           )}
 
           {/* 작성자 + 날짜 */}
