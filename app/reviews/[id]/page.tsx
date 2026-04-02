@@ -57,6 +57,7 @@ export default function ReviewPage({
   const [memberId, setMemberId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadComments = useCallback(async (reviewId: string) => {
@@ -119,6 +120,27 @@ export default function ReviewPage({
 
     load();
   }, [id, router, loadComments]);
+
+  async function handleDelete() {
+    if (!review || deleting) return;
+    if (!confirm("독후감을 삭제할까요?")) return;
+
+    setDeleting(true);
+
+    const sessionToken = localStorage.getItem("session_token") ?? "";
+    const res = await fetch(`/api/reviews/${review.id}`, {
+      method: "DELETE",
+      headers: { "x-session-token": sessionToken },
+    });
+
+    if (res.ok) {
+      const groupId = review.books?.group_id;
+      router.replace(groupId ? `/group/${groupId}` : "/");
+    } else {
+      alert("삭제에 실패했습니다. 다시 시도해주세요.");
+      setDeleting(false);
+    }
+  }
 
   async function handleCommentSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -217,9 +239,30 @@ export default function ReviewPage({
               </span>
             )}
             <span className="text-xs text-gray-400">
-            {formatDisplayDate(review.reviewed_at)}
+              {formatDisplayDate(review.reviewed_at)}
             </span>
           </div>
+
+          {/* 수정/삭제 (본인만) */}
+          {memberId && memberId === review.members?.id && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => router.push(`/reviews/${review.id}/edit`)}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700"
+              >
+                수정
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 rounded-xl border border-red-100 py-2.5 text-sm font-medium text-red-500 disabled:opacity-40"
+              >
+                {deleting ? "삭제 중..." : "삭제"}
+              </button>
+            </div>
+          )}
 
           {/* 본문 */}
           <p className="text-sm leading-relaxed whitespace-pre-wrap">

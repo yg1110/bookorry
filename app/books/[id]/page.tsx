@@ -129,6 +129,7 @@ export default function BookPage({
       setReviews((prev) => [added, ...prev]);
       setContent("");
       setReviewedAt(new Date());
+      localStorage.setItem("last_book_id", book.id);
     }
 
     setSubmitting(false);
