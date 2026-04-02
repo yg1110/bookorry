@@ -22,6 +22,10 @@ export default function AddBookPage() {
   const [registering, setRegistering] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [groupId, setGroupId] = useState<string | null>(null);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualAuthor, setManualAuthor] = useState("");
+  const [manualLoading, setManualLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -66,10 +70,29 @@ export default function AddBookPage() {
       setDone(book.isbn);
       setTimeout(() => {
         const gid = localStorage.getItem("group_id");
-        router.push(gid ? `/group/${gid}` : "/");
+        router.push(gid ? `/group/${gid}?tab=books` : "/");
       }, 1200);
     }
     setRegistering(null);
+  }
+
+  async function handleManualRegister(e: React.FormEvent) {
+    e.preventDefault();
+    if (!groupId || !manualTitle.trim()) return;
+    setManualLoading(true);
+
+    const { error } = await supabase.from("books").insert({
+      group_id: groupId,
+      title: manualTitle.trim(),
+      author: manualAuthor.trim() || null,
+      thumbnail: null,
+    });
+
+    setManualLoading(false);
+    if (!error) {
+      const gid = localStorage.getItem("group_id");
+      router.push(gid ? `/group/${gid}?tab=books` : "/");
+    }
   }
 
   return (
@@ -94,8 +117,57 @@ export default function AddBookPage() {
           <p className="text-center text-sm text-gray-400">검색 중...</p>
         )}
 
-        {!searching && results.length === 0 && query.trim() && (
-          <p className="text-center text-sm text-gray-400">검색 결과가 없어요.</p>
+        {!searching && results.length === 0 && query.trim() && !manualMode && (
+          <div className="space-y-2 text-center">
+            <p className="text-sm text-gray-400">검색 결과가 없어요.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setManualTitle(query);
+                setManualMode(true);
+              }}
+              className="text-sm font-medium text-black underline underline-offset-4"
+            >
+              직접 입력하기
+            </button>
+          </div>
+        )}
+
+        {manualMode && (
+          <form onSubmit={handleManualRegister} className="space-y-3 rounded-2xl border border-gray-200 p-4">
+            <p className="text-sm font-semibold">직접 입력</p>
+            <input
+              type="text"
+              value={manualTitle}
+              onChange={(e) => setManualTitle(e.target.value)}
+              placeholder="책 제목 *"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
+              required
+            />
+            <input
+              type="text"
+              value={manualAuthor}
+              onChange={(e) => setManualAuthor(e.target.value)}
+              placeholder="저자 (선택)"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setManualMode(false)}
+                className="flex-1 rounded-xl border border-gray-200 py-3 text-sm text-gray-500"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={manualLoading || !manualTitle.trim()}
+                className="flex-1 rounded-xl bg-black py-3 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                {manualLoading ? "등록 중..." : "등록"}
+              </button>
+            </div>
+          </form>
         )}
 
         <ul className="space-y-3">
