@@ -90,3 +90,49 @@ create policy "anyone can insert review_comments"
 create policy "anyone can read review_comments"
   on review_comments for select
   using (true);
+
+-- Storage bucket for routine photos
+insert into storage.buckets (id, name, public)
+values ('routine-photos', 'routine-photos', true)
+on conflict (id) do nothing;
+
+create policy "anyone can upload routine photos"
+  on storage.objects for insert
+  with check (bucket_id = 'routine-photos');
+
+create policy "anyone can read routine photos"
+  on storage.objects for select
+  using (bucket_id = 'routine-photos');
+
+-- Routine logs table
+create table routine_logs (
+  id uuid primary key default gen_random_uuid(),
+  member_id uuid not null references members(id) on delete cascade,
+  group_id uuid not null references groups(id) on delete cascade,
+  type text not null check (type in ('gym', 'reading', 'diet', 'duolingo', 'self_dev')),
+  photo_url text,
+  text_content text,
+  review_id uuid references reviews(id) on delete set null,
+  log_date date not null default current_date,
+  created_at timestamptz not null default now()
+);
+
+create index routine_logs_group_date_idx on routine_logs(group_id, log_date);
+
+alter table routine_logs enable row level security;
+
+create policy "anyone can insert routine_logs"
+  on routine_logs for insert
+  with check (true);
+
+create policy "anyone can read routine_logs"
+  on routine_logs for select
+  using (true);
+
+create policy "anyone can update routine_logs"
+  on routine_logs for update
+  using (true);
+
+create policy "anyone can delete routine_logs"
+  on routine_logs for delete
+  using (true);

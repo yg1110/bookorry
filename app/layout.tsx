@@ -10,8 +10,13 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "Bookorry",
-  description: "Bookorry is a platform for booking books",
+  title: "오늘의 루틴",
+  description: "매일 함께 루틴을 완성해요",
+  openGraph: {
+    title: "오늘의 루틴",
+    description: "매일 함께 루틴을 완성해요",
+    images: [{ url: "/og.svg", width: 1200, height: 630 }],
+  },
 };
 
 /** 모바일에서 input 포커스 시 자동 확대 완화 (iOS Safari 등) */

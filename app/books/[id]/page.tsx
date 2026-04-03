@@ -25,6 +25,7 @@ interface Review {
   content: string;
   reviewed_at: string;
   members: { id: string; nickname: string } | null;
+  comment_count: number;
 }
 
 export default function BookPage({
@@ -55,7 +56,7 @@ export default function BookPage({
           .single(),
         supabase
           .from("reviews")
-          .select("id, content, reviewed_at, members(id, nickname)")
+          .select("id, content, reviewed_at, members(id, nickname), review_comments(count)")
           .eq("book_id", id)
           .order("reviewed_at", { ascending: false }),
       ]);
@@ -74,14 +75,16 @@ export default function BookPage({
       };
       setBook(bookData);
 
-      const rawReviews =
-        (reviewsRes.data as (Omit<Review, "members"> & {
-          members: Review["members"] | NonNullable<Review["members"]>[];
-        })[]) ?? [];
+      type RawReview = Omit<Review, "members" | "comment_count"> & {
+        members: Review["members"] | NonNullable<Review["members"]>[];
+        review_comments: { count: number }[];
+      };
+      const rawReviews = (reviewsRes.data as RawReview[] | null) ?? [];
       setReviews(
         rawReviews.map((r) => ({
           ...r,
           members: relationOne(r.members),
+          comment_count: r.review_comments?.[0]?.count ?? 0,
         })),
       );
 
@@ -130,6 +133,17 @@ export default function BookPage({
       setContent("");
       setReviewedAt(new Date());
       localStorage.setItem("last_book_id", book.id);
+
+      const groupId = localStorage.getItem("group_id");
+      if (groupId) {
+        await supabase.from("routine_logs").insert({
+          member_id: memberId,
+          group_id: groupId,
+          type: "reading",
+          review_id: data.id,
+          log_date: new Date().toISOString().split("T")[0],
+        });
+      }
     }
 
     setSubmitting(false);
@@ -237,19 +251,9 @@ export default function BookPage({
                 className="block rounded-2xl bg-gray-50 px-4 py-4"
               >
                 <div className="flex items-center justify-between">
-                  {review.members ? (
-                    <button
-                      className="text-xs font-semibold underline decoration-dotted"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        router.push(`/members/${review.members!.id}`);
-                      }}
-                    >
-                      {review.members.nickname}
-                    </button>
-                  ) : (
-                    <span className="text-xs font-semibold text-gray-400">알 수 없음</span>
-                  )}
+                  <span className="text-xs font-semibold">
+                    {review.members?.nickname ?? "알 수 없음"}
+                  </span>
                   <span className="text-xs text-gray-400">
                     {formatDisplayDate(review.reviewed_at)}
                   </span>
@@ -257,6 +261,11 @@ export default function BookPage({
                 <p className="mt-2 line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap">
                   {review.content}
                 </p>
+                {review.comment_count > 0 && (
+                  <p className="mt-2 text-xs text-gray-400">
+                    댓글 {review.comment_count}개
+                  </p>
+                )}
               </Link>
             ))
           )}

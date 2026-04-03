@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+
+  <!-- Subtle grid lines -->
+  <g stroke="#1a1a1a" stroke-width="1">
+    <line x1="0" y1="105" x2="1200" y2="105"/>
+    <line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="420" x2="1200" y2="420"/>
+    <line x1="0" y1="525" x2="1200" y2="525"/>
+    <line x1="200" y1="0" x2="200" y2="630"/>
+    <line x1="400" y1="0" x2="400" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="800" y1="0" x2="800" y2="630"/>
+    <line x1="1000" y1="0" x2="1000" y2="630"/>
+  </g>
+
+  <!-- Icon box -->
+  <rect x="136" y="215" width="200" height="200" rx="40" fill="#111111"/>
+  <rect x="136" y="215" width="200" height="200" rx="40" fill="none" stroke="#222" stroke-width="1.5"/>
+  <polyline
+    points="178,315 215,352 294,268"
+    stroke="#ffffff"
+    stroke-width="14"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <!-- App name -->
+  <text
+    x="390"
+    y="300"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="72"
+    font-weight="700"
+    fill="#ffffff"
+    letter-spacing="-2"
+  >오늘의 루틴</text>
+
+  <!-- Tagline -->
+  <text
+    x="390"
+    y="358"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="30"
+    font-weight="400"
+    fill="#555555"
+  >매일 함께 루틴을 완성해요</text>
+
+  <!-- Routine badges -->
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22" fill="#333333">
+    <rect x="390" y="400" width="120" height="40" rx="20" fill="#111"/>
+    <text x="450" y="426" text-anchor="middle" fill="#888">🏋️ 헬스장</text>
+
+    <rect x="524" y="400" width="100" height="40" rx="20" fill="#111"/>
+    <text x="574" y="426" text-anchor="middle" fill="#888">🍱 식단</text>
+
+    <rect x="638" y="400" width="130" height="40" rx="20" fill="#111"/>
+    <text x="703" y="426" text-anchor="middle" fill="#888">🦜 듀오링고</text>
+
+    <rect x="782" y="400" width="100" height="40" rx="20" fill="#111"/>
+    <text x="832" y="426" text-anchor="middle" fill="#888">📚 독서</text>
+  </g>
+</svg>
