@@ -21,6 +21,7 @@ interface RoutineLog {
   member_id: string;
   created_at: string;
   members: { nickname: string } | null;
+  reviews: { books: { thumbnail: string | null } | null } | null;
 }
 
 const ROUTINES = [
@@ -106,21 +107,26 @@ export default function RoutinesPage({
       const { data: logsData } = await supabase
         .from("routine_logs")
         .select(
-          "id, type, photo_url, text_content, member_id, created_at, members(nickname)",
+          "id, type, photo_url, text_content, member_id, created_at, members(nickname), reviews(books(thumbnail))",
         )
         .eq("group_id", groupId)
         .eq("log_date", today)
         .order("created_at", { ascending: false });
 
-      type RawLog = Omit<RoutineLog, "members"> & {
+      type RawLog = Omit<RoutineLog, "members" | "reviews"> & {
         members: RoutineLog["members"] | NonNullable<RoutineLog["members"]>[];
+        reviews: RoutineLog["reviews"] | NonNullable<RoutineLog["reviews"]>[] | null;
       };
       const rawLogs = (logsData as RawLog[] | null) ?? [];
       setLogs(
-        rawLogs.map((l) => ({
-          ...l,
-          members: relationOne(l.members),
-        })),
+        rawLogs.map((l) => {
+          const review = relationOne(l.reviews);
+          return {
+            ...l,
+            members: relationOne(l.members),
+            reviews: review ? { books: relationOne((review as { books: unknown }).books) as { thumbnail: string | null } | null } : null,
+          };
+        }),
       );
       setLoading(false);
     }
@@ -266,8 +272,14 @@ export default function RoutinesPage({
                         className="h-12 w-12 shrink-0 cursor-pointer rounded-xl object-cover"
                         onClick={() => setLightboxSrc(log.photo_url!)}
                       />
+                    ) : log.reviews?.books?.thumbnail ? (
+                      <img
+                        src={log.reviews.books.thumbnail}
+                        alt=""
+                        className="h-12 w-12 shrink-0 rounded-xl object-cover"
+                      />
                     ) : (
-                      <span className="text-2xl">{routine?.icon}</span>
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center text-2xl">{routine?.icon}</span>
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">

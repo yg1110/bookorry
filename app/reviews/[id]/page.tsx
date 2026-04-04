@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { Header } from "@/components/header";
 import { formatDisplayDate } from "@/lib/format-display-date";
-import { relationOne } from "@/lib/supabase-relations";
 import { supabase } from "@/lib/supabase";
+import { relationOne } from "@/lib/supabase-relations";
 
 interface Review {
   id: string;
@@ -194,7 +194,8 @@ export default function ReviewPage({
 
   const currentIdx = siblingIds.indexOf(id);
   const prevId = currentIdx > 0 ? siblingIds[currentIdx - 1] : null;
-  const nextId = currentIdx < siblingIds.length - 1 ? siblingIds[currentIdx + 1] : null;
+  const nextId =
+    currentIdx < siblingIds.length - 1 ? siblingIds[currentIdx + 1] : null;
 
   const inviteCode = review.books?.groups?.invite_code;
   const joinUrl = inviteCode
@@ -206,9 +207,7 @@ export default function ReviewPage({
       <Header
         title="독후감"
         backHref={
-          review.books?.group_id
-            ? `/group/${review.books.group_id}`
-            : undefined
+          review.books?.group_id ? `/group/${review.books.group_id}` : undefined
         }
       />
       <main className="flex flex-col px-4 pt-6 pb-24">
@@ -269,12 +268,9 @@ export default function ReviewPage({
           {/* 작성자 + 날짜 */}
           <div className="flex items-center justify-between">
             {review.members ? (
-              <Link
-                href={`/members/${review.members.id}`}
-                className="text-sm font-semibold underline decoration-dotted"
-              >
+              <span className="text-sm font-semibold">
                 {review.members.nickname}
-              </Link>
+              </span>
             ) : (
               <span className="text-sm font-semibold text-gray-400">
                 알 수 없음
@@ -367,7 +363,7 @@ export default function ReviewPage({
                         </span>
                       )}
                       <time className="shrink-0 text-[10px] text-gray-400">
-                      {formatDisplayDate(c.created_at)}
+                        {formatDisplayDate(c.created_at)}
                       </time>
                     </div>
                     <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">

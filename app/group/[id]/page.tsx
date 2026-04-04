@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Copy, Pencil, Trash2 } from "lucide-react";
 
-import { KakaoShareButton } from "@/components/kakao-share-button";
 import { Header } from "@/components/header";
 import { ImageLightbox } from "@/components/image-lightbox";
-import { relationOne } from "@/lib/supabase-relations";
+import { KakaoShareButton } from "@/components/kakao-share-button";
 import { supabase } from "@/lib/supabase";
+import { relationOne } from "@/lib/supabase-relations";
 
 const ROUTINE_LABELS: Record<string, { label: string; icon: string }> = {
   gym: { label: "헬스장", icon: "🏋️" },
@@ -50,8 +50,14 @@ interface StandaloneReview {
   id: string;
   content: string;
   created_at: string;
-  members: { id: string; nickname: string } | NonNullable<{ id: string; nickname: string }>[] | null;
-  books: { id: string; title: string; thumbnail: string | null } | NonNullable<{ id: string; title: string; thumbnail: string | null }>[] | null;
+  members:
+    | { id: string; nickname: string }
+    | NonNullable<{ id: string; nickname: string }>[]
+    | null;
+  books:
+    | { id: string; title: string; thumbnail: string | null }
+    | NonNullable<{ id: string; title: string; thumbnail: string | null }>[]
+    | null;
 }
 
 export default function GroupPage({
@@ -69,43 +75,48 @@ export default function GroupPage({
   const [copied, setCopied] = useState(false);
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null);
   const [myMemberId, setMyMemberId] = useState<string | null>(null);
-  const [todayDone, setTodayDone] = useState<{ type: string; member_id: string }[]>([]);
+  const [todayDone, setTodayDone] = useState<
+    { type: string; member_id: string }[]
+  >([]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       const today = new Date().toISOString().split("T")[0];
-      const [groupRes, membersRes, logsRes, reviewsRes, todayRes] = await Promise.all([
-        supabase
-          .from("groups")
-          .select("id, name, invite_code")
-          .eq("id", id)
-          .single(),
-        supabase
-          .from("members")
-          .select("id, nickname")
-          .eq("group_id", id)
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("routine_logs")
-          .select(
-            "id, type, photo_url, text_content, created_at, members(id, nickname), reviews(id, content, books(id, title, thumbnail))",
-          )
-          .eq("group_id", id)
-          .order("created_at", { ascending: false })
-          .limit(50),
-        supabase
-          .from("reviews")
-          .select("id, content, created_at, members(id, nickname), books(id, title, thumbnail)")
-          .eq("books.group_id", id)
-          .order("created_at", { ascending: false })
-          .limit(50),
-        supabase
-          .from("routine_logs")
-          .select("type, member_id")
-          .eq("group_id", id)
-          .eq("log_date", today),
-      ]);
+      const [groupRes, membersRes, logsRes, reviewsRes, todayRes] =
+        await Promise.all([
+          supabase
+            .from("groups")
+            .select("id, name, invite_code")
+            .eq("id", id)
+            .single(),
+          supabase
+            .from("members")
+            .select("id, nickname")
+            .eq("group_id", id)
+            .order("created_at", { ascending: true }),
+          supabase
+            .from("routine_logs")
+            .select(
+              "id, type, photo_url, text_content, created_at, members(id, nickname), reviews(id, content, books(id, title, thumbnail))",
+            )
+            .eq("group_id", id)
+            .order("created_at", { ascending: false })
+            .limit(50),
+          supabase
+            .from("reviews")
+            .select(
+              "id, content, created_at, members(id, nickname), books(id, title, thumbnail)",
+            )
+            .eq("books.group_id", id)
+            .order("created_at", { ascending: false })
+            .limit(50),
+          supabase
+            .from("routine_logs")
+            .select("type, member_id")
+            .eq("group_id", id)
+            .eq("log_date", today),
+        ]);
 
       if (groupRes.error || !groupRes.data) {
         router.replace("/");
@@ -173,7 +184,8 @@ export default function GroupPage({
         }));
 
       const merged = [...routineLogs, ...standaloneItems].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
       setFeed(merged);
@@ -187,7 +199,8 @@ export default function GroupPage({
   function sendNudge(nickname: string, missingLabels: string[]) {
     const kakao = window.Kakao;
     if (!kakao) return;
-    if (!kakao.isInitialized()) kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY!);
+    if (!kakao.isInitialized())
+      kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY!);
     const origin = window.location.origin;
     const path = `/group/${id}/routines`;
     const url = group?.invite_code
@@ -200,7 +213,9 @@ export default function GroupPage({
         description: `미완료: ${missingLabels.join(", ")}`,
         link: { mobileWebUrl: url, webUrl: url },
       },
-      buttons: [{ title: "루틴 하러 가기", link: { mobileWebUrl: url, webUrl: url } }],
+      buttons: [
+        { title: "루틴 하러 가기", link: { mobileWebUrl: url, webUrl: url } },
+      ],
     });
   }
 
@@ -271,14 +286,6 @@ export default function GroupPage({
       />
       <main className="flex flex-col px-4 pt-4 pb-24">
         <div className="mx-auto w-full max-w-md space-y-5">
-          <KakaoShareButton
-            title={group.name}
-            description="이 그룹에 들어와서 루틴 만들어보자 💪"
-            imageUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/og.svg`}
-            path={`/group/${group.id}`}
-            inviteCode={group.invite_code}
-          />
-
           <div className="flex flex-wrap gap-2">
             {members.map((m) => {
               const active = filterMemberId === m.id;
@@ -303,7 +310,9 @@ export default function GroupPage({
             const incomplete = members
               .map((m) => {
                 const done = new Set(
-                  todayDone.filter((l) => l.member_id === m.id).map((l) => l.type),
+                  todayDone
+                    .filter((l) => l.member_id === m.id)
+                    .map((l) => l.type),
                 );
                 const missing = REQUIRED_TYPES.filter((t) => !done.has(t));
                 return { ...m, missing };
@@ -314,7 +323,9 @@ export default function GroupPage({
 
             return (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-400">오늘 미완료 루틴</p>
+                <p className="text-xs font-semibold text-gray-400">
+                  오늘 미완료 루틴
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {incomplete.map((m) => (
                     <div
@@ -358,7 +369,9 @@ export default function GroupPage({
             if (filtered.length === 0) {
               return (
                 <div className="py-16 text-center">
-                  <p className="text-sm text-gray-400">아직 완료한 루틴이 없어요</p>
+                  <p className="text-sm text-gray-400">
+                    아직 완료한 루틴이 없어요
+                  </p>
                   {!filterMemberId && (
                     <p className="mt-1 text-xs text-gray-300">
                       루틴 탭에서 오늘의 할 일을 완료해보세요
@@ -369,53 +382,161 @@ export default function GroupPage({
             }
 
             return (
-            <section className="space-y-3">
-              {filtered.map((item) => {
-                const routine = ROUTINE_LABELS[item.type] ?? {
-                  label: item.type,
-                  icon: "✅",
-                };
+              <section className="space-y-3">
+                {filtered.map((item) => {
+                  const routine = ROUTINE_LABELS[item.type] ?? {
+                    label: item.type,
+                    icon: "✅",
+                  };
 
-                const isOwn = item.members?.id === myMemberId;
-                const dateStr = formatDate(item.created_at);
+                  const isOwn = item.members?.id === myMemberId;
+                  const dateStr = formatDate(item.created_at);
 
-                if (item.type === "reading" && item.reviews) {
-                  return (
-                    <div key={item.id} className="rounded-2xl bg-gray-50 px-4 py-4">
-                      <Link href={`/reviews/${item.reviews.id}`} className="block">
-                        <div className="flex items-center gap-2">
-                          {item.reviews.books?.thumbnail ? (
-                            <img
-                              src={item.reviews.books.thumbnail}
-                              alt={item.reviews.books.title}
-                              className="h-8 w-6 rounded object-cover"
-                            />
-                          ) : (
-                            <span className="text-base">{routine.icon}</span>
+                  if (item.type === "reading" && item.reviews) {
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-2xl bg-gray-50 px-4 py-4"
+                      >
+                        <Link
+                          href={`/reviews/${item.reviews.id}`}
+                          className="block"
+                        >
+                          <div className="flex items-center gap-2">
+                            {item.reviews.books?.thumbnail ? (
+                              <img
+                                src={item.reviews.books.thumbnail}
+                                alt={item.reviews.books.title}
+                                className="h-8 w-6 rounded object-cover"
+                              />
+                            ) : (
+                              <span className="text-base">{routine.icon}</span>
+                            )}
+                            <span className="line-clamp-1 text-xs text-gray-400">
+                              {item.reviews.books?.title}
+                            </span>
+                          </div>
+                          <p className="mt-2 line-clamp-3 text-sm leading-relaxed">
+                            {item.reviews.content}
+                          </p>
+                        </Link>
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold">
+                              {item.members?.nickname}
+                            </span>
+                            <span className="text-[10px] text-gray-400">
+                              {dateStr}
+                            </span>
+                          </div>
+                          {isOwn && (
+                            <div className="flex items-center gap-1">
+                              <Link
+                                href={`/reviews/${item.reviews.id}/edit`}
+                                className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
+                              >
+                                <Pencil size={14} />
+                              </Link>
+                              <button
+                                onClick={() =>
+                                  handleDeleteItem(item.reviews!.id, true)
+                                }
+                                className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           )}
-                          <span className="line-clamp-1 text-xs text-gray-400">
-                            {item.reviews.books?.title}
-                          </span>
                         </div>
-                        <p className="mt-2 line-clamp-3 text-sm leading-relaxed">
-                          {item.reviews.content}
+                      </div>
+                    );
+                  }
+
+                  if (item.photo_url) {
+                    return (
+                      <div
+                        key={item.id}
+                        className="overflow-hidden rounded-2xl bg-gray-50"
+                      >
+                        <img
+                          src={item.photo_url}
+                          alt={routine.label}
+                          className="w-full cursor-pointer object-cover"
+                          style={{ maxHeight: 320 }}
+                          onClick={() => setLightboxSrc(item.photo_url!)}
+                        />
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold">
+                              {item.members?.nickname}
+                            </span>
+                            <span className="text-[10px] text-gray-400">
+                              {dateStr}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-gray-400">
+                              {routine.icon} {routine.label}
+                            </span>
+                            {isOwn && (
+                              <>
+                                <Link
+                                  href={`/routine-logs/${item.id}/edit`}
+                                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
+                                >
+                                  <Pencil size={14} />
+                                </Link>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteItem(item.id, false)
+                                  }
+                                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl bg-gray-50 px-4 py-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{routine.icon}</span>
+                        <span className="text-xs text-gray-400">
+                          {routine.label}
+                        </span>
+                      </div>
+                      {item.text_content && (
+                        <p className="mt-2 text-sm leading-relaxed">
+                          {item.text_content}
                         </p>
-                      </Link>
+                      )}
                       <div className="mt-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold">{item.members?.nickname}</span>
-                          <span className="text-[10px] text-gray-400">{dateStr}</span>
+                          <span className="text-xs font-semibold">
+                            {item.members?.nickname}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            {dateStr}
+                          </span>
                         </div>
                         {isOwn && (
                           <div className="flex items-center gap-1">
                             <Link
-                              href={`/reviews/${item.reviews.id}/edit`}
+                              href={`/routine-logs/${item.id}/edit`}
                               className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
                             >
                               <Pencil size={14} />
                             </Link>
                             <button
-                              onClick={() => handleDeleteItem(item.reviews!.id, true)}
+                              onClick={() => handleDeleteItem(item.id, false)}
                               className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
                             >
                               <Trash2 size={14} />
@@ -425,84 +546,8 @@ export default function GroupPage({
                       </div>
                     </div>
                   );
-                }
-
-                if (item.photo_url) {
-                  return (
-                    <div key={item.id} className="overflow-hidden rounded-2xl bg-gray-50">
-                      <img
-                        src={item.photo_url}
-                        alt={routine.label}
-                        className="w-full cursor-pointer object-cover"
-                        style={{ maxHeight: 320 }}
-                        onClick={() => setLightboxSrc(item.photo_url!)}
-                      />
-                      <div className="flex items-center justify-between px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold">{item.members?.nickname}</span>
-                          <span className="text-[10px] text-gray-400">{dateStr}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-gray-400">
-                            {routine.icon} {routine.label}
-                          </span>
-                          {isOwn && (
-                            <>
-                              <Link
-                                href={`/routine-logs/${item.id}/edit`}
-                                className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
-                              >
-                                <Pencil size={14} />
-                              </Link>
-                              <button
-                                onClick={() => handleDeleteItem(item.id, false)}
-                                className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div key={item.id} className="rounded-2xl bg-gray-50 px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{routine.icon}</span>
-                      <span className="text-xs text-gray-400">{routine.label}</span>
-                    </div>
-                    {item.text_content && (
-                      <p className="mt-2 text-sm leading-relaxed">{item.text_content}</p>
-                    )}
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold">{item.members?.nickname}</span>
-                        <span className="text-[10px] text-gray-400">{dateStr}</span>
-                      </div>
-                      {isOwn && (
-                        <div className="flex items-center gap-1">
-                          <Link
-                            href={`/routine-logs/${item.id}/edit`}
-                            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
-                          >
-                            <Pencil size={14} />
-                          </Link>
-                          <button
-                            onClick={() => handleDeleteItem(item.id, false)}
-                            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </section>
+                })}
+              </section>
             );
           })()}
         </div>

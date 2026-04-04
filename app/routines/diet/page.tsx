@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus } from "lucide-react";
+import { Camera, Images } from "lucide-react";
 import { Header } from "@/components/header";
 import { supabase } from "@/lib/supabase";
 
@@ -13,7 +13,8 @@ export default function DietRoutinePage() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function init() {
@@ -86,10 +87,17 @@ export default function DietRoutinePage() {
           </p>
 
           <input
-            ref={inputRef}
+            ref={cameraInputRef}
             type="file"
             accept="image/*"
             capture="environment"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
             className="hidden"
             onChange={handleFileChange}
           />
@@ -101,21 +109,38 @@ export default function DietRoutinePage() {
                 alt="미리보기"
                 className="max-h-96 w-full rounded-2xl object-cover"
               />
-              <button
-                onClick={() => inputRef.current?.click()}
-                className="absolute bottom-3 right-3 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium backdrop-blur-sm"
-              >
-                다시 찍기
-              </button>
+              <div className="absolute bottom-3 right-3 flex gap-2">
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium backdrop-blur-sm"
+                >
+                  다시 찍기
+                </button>
+                <button
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium backdrop-blur-sm"
+                >
+                  목록에서 선택
+                </button>
+              </div>
             </div>
           ) : (
-            <button
-              onClick={() => inputRef.current?.click()}
-              className="flex h-48 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 active:bg-gray-50"
-            >
-              <ImagePlus size={28} />
-              <span className="text-sm">사진 찍기</span>
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 active:bg-gray-50"
+              >
+                <Camera size={28} />
+                <span className="text-sm">사진 찍기</span>
+              </button>
+              <button
+                onClick={() => galleryInputRef.current?.click()}
+                className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 active:bg-gray-50"
+              >
+                <Images size={28} />
+                <span className="text-sm">사진 목록에서 선택</span>
+              </button>
+            </div>
           )}
 
           <button
