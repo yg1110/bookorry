@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
 
 import { Header } from "@/components/header";
+import { ImageLightbox } from "@/components/image-lightbox";
 import { KakaoShareButton } from "@/components/kakao-share-button";
 import { supabase } from "@/lib/supabase";
 import { relationOne } from "@/lib/supabase-relations";
@@ -76,6 +77,7 @@ export default function RoutinesPage({
     invite_code: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -158,6 +160,9 @@ export default function RoutinesPage({
 
   return (
     <>
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
       <Header title="오늘의 루틴" back={false} />
       <main className="flex flex-col px-4 pt-4 pb-24">
         <div className="mx-auto w-full max-w-md space-y-3">
@@ -258,7 +263,8 @@ export default function RoutinesPage({
                       <img
                         src={log.photo_url}
                         alt=""
-                        className="h-12 w-12 shrink-0 rounded-xl object-cover"
+                        className="h-12 w-12 shrink-0 cursor-pointer rounded-xl object-cover"
+                        onClick={() => setLightboxSrc(log.photo_url!)}
                       />
                     ) : (
                       <span className="text-2xl">{routine?.icon}</span>

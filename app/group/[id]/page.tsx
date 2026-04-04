@@ -7,6 +7,7 @@ import { Copy, Pencil, Trash2 } from "lucide-react";
 
 import { KakaoShareButton } from "@/components/kakao-share-button";
 import { Header } from "@/components/header";
+import { ImageLightbox } from "@/components/image-lightbox";
 import { relationOne } from "@/lib/supabase-relations";
 import { supabase } from "@/lib/supabase";
 
@@ -69,6 +70,7 @@ export default function GroupPage({
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null);
   const [myMemberId, setMyMemberId] = useState<string | null>(null);
   const [todayDone, setTodayDone] = useState<{ type: string; member_id: string }[]>([]);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -247,6 +249,9 @@ export default function GroupPage({
 
   return (
     <>
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
       <Header
         title={group.name}
         back={false}
@@ -428,8 +433,9 @@ export default function GroupPage({
                       <img
                         src={item.photo_url}
                         alt={routine.label}
-                        className="w-full object-cover"
+                        className="w-full cursor-pointer object-cover"
                         style={{ maxHeight: 320 }}
+                        onClick={() => setLightboxSrc(item.photo_url!)}
                       />
                       <div className="flex items-center justify-between px-4 py-3">
                         <div className="flex items-center gap-2">
