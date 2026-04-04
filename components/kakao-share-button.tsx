@@ -1,7 +1,5 @@
 "use client";
 
-import Script from "next/script";
-
 declare global {
   interface Window {
     Kakao: {
@@ -54,12 +52,16 @@ export function KakaoShareButton({
     const url = buildShareUrl(origin, path, inviteCode);
     const buttonTitle = inviteCode ? "참여하고 보기" : "열기";
 
+    const ogUrl = `${origin}/api/og?group=${encodeURIComponent(title)}`;
+
     kakao.Share.sendDefault({
       objectType: "feed",
       content: {
         title,
         description,
-        ...(imageUrl ? { imageUrl } : {}),
+        imageUrl: imageUrl ?? ogUrl,
+        imageWidth: 1200,
+        imageHeight: 630,
         link: { mobileWebUrl: url, webUrl: url },
       },
       buttons: [
@@ -73,10 +75,6 @@ export function KakaoShareButton({
 
   return (
     <>
-      <Script
-        src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
-        strategy="lazyOnload"
-      />
       <button
         onClick={handleShare}
         className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FEE500] py-3 text-sm font-semibold text-[#3C1E1E]"
@@ -91,4 +89,5 @@ export function KakaoShareButton({
       </button>
     </>
   );
+
 }

@@ -3,6 +3,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { Suspense } from "react";
+import Script from "next/script";
 
 import { BottomNav } from "@/components/bottom-nav";
 import { cn } from "@/lib/utils";
@@ -34,9 +35,13 @@ export default function RootLayout({
   return (
     <html lang="ko" className={cn("font-sans", geist.variable)}>
       <body className="flex min-h-full flex-col">
-          {children}
-          <Suspense><BottomNav /></Suspense>
-        </body>
+        <Script
+          src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
+          strategy="afterInteractive"
+        />
+        {children}
+        <Suspense><BottomNav /></Suspense>
+      </body>
     </html>
   );
 }

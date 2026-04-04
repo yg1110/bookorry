@@ -246,7 +246,6 @@ export default function RoutinesPage({
                   ? `오늘 ${myDoneCount}개 루틴 완료! 같이 루틴 챌린지해봐요 💪`
                   : "같이 루틴 챌린지해봐요 💪";
               })()}
-              imageUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/og.svg`}
               path={`/group/${groupId}/routines`}
               inviteCode={group.invite_code}
             />
