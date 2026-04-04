@@ -196,7 +196,7 @@ export default function GroupPage({
     load();
   }, [id, router]);
 
-  function sendNudge(nickname: string, missingLabels: string[]) {
+  function sendNudge(nickname: string, missingLabels: string[], doneLabels: string[]) {
     const kakao = window.Kakao;
     if (!kakao) return;
     if (!kakao.isInitialized())
@@ -206,11 +206,19 @@ export default function GroupPage({
     const url = group?.invite_code
       ? `${origin}/join?code=${group.invite_code}&redirect=${encodeURIComponent(path)}`
       : `${origin}${path}`;
+    const nudgeImageUrl =
+      `${origin}/api/og/nudge` +
+      `?nickname=${encodeURIComponent(nickname)}` +
+      `&missing=${encodeURIComponent(missingLabels.join(","))}` +
+      `&done=${encodeURIComponent(doneLabels.join(","))}`;
     kakao.Share.sendDefault({
       objectType: "feed",
       content: {
-        title: `${nickname}님, 오늘 루틴 아직이에요 👀`,
+        title: `${nickname}님, 오늘 루틴 아직이에요`,
         description: `미완료: ${missingLabels.join(", ")}`,
+        imageUrl: nudgeImageUrl,
+        imageWidth: 1200,
+        imageHeight: 630,
         link: { mobileWebUrl: url, webUrl: url },
       },
       buttons: [
@@ -348,6 +356,9 @@ export default function GroupPage({
                           sendNudge(
                             m.nickname,
                             m.missing.map((t) => ROUTINE_LABELS[t]?.label ?? t),
+                            REQUIRED_TYPES
+                              .filter((t) => !m.missing.includes(t))
+                              .map((t) => ROUTINE_LABELS[t]?.label ?? t),
                           )
                         }
                         className="mt-auto w-full rounded-xl bg-[#FEE500] py-1.5 text-[11px] font-semibold text-[#3C1E1E]"
