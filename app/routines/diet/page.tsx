@@ -2,16 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Images } from "lucide-react";
+import { Camera, Images, Plus, X } from "lucide-react";
 import { Header } from "@/components/header";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { supabase } from "@/lib/supabase";
+import { dateToLogDate } from "@/lib/utils";
 
 export default function DietRoutinePage() {
   const router = useRouter();
   const [groupId, setGroupId] = useState<string | null>(null);
   const [memberId, setMemberId] = useState<string | null>(null);
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [logDate, setLogDate] = useState(() => new Date());
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -35,40 +38,53 @@ export default function DietRoutinePage() {
     init();
   }, []);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhoto(file);
-    setPreview(URL.createObjectURL(file));
+  function addFiles(files: FileList | null) {
+    if (!files) return;
+    const newFiles = Array.from(files);
+    setPhotos((prev) => [...prev, ...newFiles]);
+    setPreviews((prev) => [
+      ...prev,
+      ...newFiles.map((f) => URL.createObjectURL(f)),
+    ]);
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit() {
-    if (!photo || !memberId || !groupId) return;
+    if (photos.length === 0 || !memberId || !groupId) return;
     setUploading(true);
 
-    const ext = photo.name.split(".").pop() ?? "jpg";
-    const path = `${groupId}/${memberId}/${Date.now()}.${ext}`;
+    const urls: string[] = [];
+    for (const photo of photos) {
+      const ext = photo.name.split(".").pop() ?? "jpg";
+      const path = `${groupId}/${memberId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("routine-photos")
-      .upload(path, photo);
+      const { error: uploadError } = await supabase.storage
+        .from("routine-photos")
+        .upload(path, photo);
 
-    if (uploadError) {
-      setUploading(false);
-      alert("사진 업로드에 실패했어요. 다시 시도해주세요.");
-      return;
+      if (uploadError) {
+        setUploading(false);
+        alert("사진 업로드에 실패했어요. 다시 시도해주세요.");
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("routine-photos")
+        .getPublicUrl(path);
+      urls.push(publicUrl);
     }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("routine-photos").getPublicUrl(path);
 
     await supabase.from("routine_logs").insert({
       member_id: memberId,
       group_id: groupId,
       type: "diet",
-      photo_url: publicUrl,
-      log_date: new Date().toISOString().split("T")[0],
+      photo_url: urls[0],
+      photo_urls: urls,
+      log_date: dateToLogDate(logDate),
     });
 
     router.replace(`/group/${groupId}/routines`);
@@ -86,43 +102,49 @@ export default function DietRoutinePage() {
             오늘 먹은 식단 사진을 올려요. 최대한 일반식 한 끼 도전!
           </p>
 
+          <DateTimePicker value={logDate} onChange={setLogDate} />
+
           <input
             ref={cameraInputRef}
             type="file"
             accept="image/*"
             capture="environment"
+            multiple
             className="hidden"
-            onChange={handleFileChange}
+            onChange={(e) => addFiles(e.target.files)}
           />
           <input
             ref={galleryInputRef}
             type="file"
             accept="image/*"
+            multiple
             className="hidden"
-            onChange={handleFileChange}
+            onChange={(e) => addFiles(e.target.files)}
           />
 
-          {preview ? (
-            <div className="relative">
-              <img
-                src={preview}
-                alt="미리보기"
-                className="max-h-96 w-full rounded-2xl object-cover"
-              />
-              <div className="absolute bottom-3 right-3 flex gap-2">
-                <button
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium backdrop-blur-sm"
-                >
-                  다시 찍기
-                </button>
-                <button
-                  onClick={() => galleryInputRef.current?.click()}
-                  className="rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium backdrop-blur-sm"
-                >
-                  목록에서 선택
-                </button>
-              </div>
+          {previews.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2">
+              {previews.map((src, i) => (
+                <div key={i} className="relative aspect-square">
+                  <img
+                    src={src}
+                    alt=""
+                    className="h-full w-full rounded-2xl object-cover"
+                  />
+                  <button
+                    onClick={() => removePhoto(i)}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => galleryInputRef.current?.click()}
+                className="flex aspect-square items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 active:bg-gray-50"
+              >
+                <Plus size={24} />
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -145,7 +167,7 @@ export default function DietRoutinePage() {
 
           <button
             onClick={handleSubmit}
-            disabled={!photo || uploading}
+            disabled={photos.length === 0 || uploading}
             className="w-full rounded-2xl bg-black py-3 text-sm font-semibold text-white disabled:opacity-40"
           >
             {uploading ? "업로드 중..." : "오늘의 식단 완료 🍱"}

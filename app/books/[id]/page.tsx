@@ -10,6 +10,7 @@ import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import { relationOne } from "@/lib/supabase-relations";
 import { supabase } from "@/lib/supabase";
+import { todayKST } from "@/lib/utils";
 
 interface Book {
   id: string;
@@ -141,7 +142,7 @@ export default function BookPage({
           group_id: groupId,
           type: "reading",
           review_id: data.id,
-          log_date: new Date().toISOString().split("T")[0],
+          log_date: todayKST(),
         });
       }
     }

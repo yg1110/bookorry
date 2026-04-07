@@ -10,6 +10,7 @@ import { ImageLightbox } from "@/components/image-lightbox";
 import { KakaoShareButton } from "@/components/kakao-share-button";
 import { supabase } from "@/lib/supabase";
 import { relationOne } from "@/lib/supabase-relations";
+import { todayKST } from "@/lib/utils";
 
 const ROUTINE_LABELS: Record<string, { label: string; icon: string }> = {
   gym: { label: "헬스장", icon: "🏋️" },
@@ -36,6 +37,7 @@ interface FeedItem {
   id: string;
   type: string;
   photo_url: string | null;
+  photo_urls: string[];
   text_content: string | null;
   created_at: string;
   members: { id: string; nickname: string } | null;
@@ -78,11 +80,11 @@ export default function GroupPage({
   const [todayDone, setTodayDone] = useState<
     { type: string; member_id: string }[]
   >([]);
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<{ srcs: string[]; index: number } | null>(null);
 
   useEffect(() => {
     async function load() {
-      const today = new Date().toISOString().split("T")[0];
+      const today = todayKST();
       const [groupRes, membersRes, logsRes, reviewsRes, todayRes] =
         await Promise.all([
           supabase
@@ -98,7 +100,7 @@ export default function GroupPage({
           supabase
             .from("routine_logs")
             .select(
-              "id, type, photo_url, text_content, created_at, members(id, nickname), reviews(id, content, books(id, title, thumbnail))",
+              "id, type, photo_url, photo_urls, text_content, created_at, members(id, nickname), reviews(id, content, books(id, title, thumbnail))",
             )
             .eq("group_id", id)
             .order("created_at", { ascending: false })
@@ -153,6 +155,7 @@ export default function GroupPage({
         const review = relationOne(row.reviews);
         return {
           ...row,
+          photo_urls: row.photo_urls ?? [],
           members: relationOne(row.members),
           reviews: review
             ? { ...review, books: relationOne(review.books) }
@@ -173,6 +176,7 @@ export default function GroupPage({
           id: `review-${r.id}`,
           type: "reading",
           photo_url: null,
+          photo_urls: [],
           text_content: null,
           created_at: r.created_at,
           members: relationOne(r.members),
@@ -196,7 +200,11 @@ export default function GroupPage({
     load();
   }, [id, router]);
 
-  function sendNudge(nickname: string, missingLabels: string[], doneLabels: string[]) {
+  function sendNudge(
+    nickname: string,
+    missingLabels: string[],
+    doneLabels: string[],
+  ) {
     const kakao = window.Kakao;
     if (!kakao) return;
     if (!kakao.isInitialized())
@@ -272,8 +280,13 @@ export default function GroupPage({
 
   return (
     <>
-      {lightboxSrc && (
-        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      {lightbox && (
+        <ImageLightbox
+          srcs={lightbox.srcs}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onChangeIndex={(i) => setLightbox((prev) => prev ? { ...prev, index: i } : null)}
+        />
       )}
       <Header
         title={group.name}
@@ -356,9 +369,9 @@ export default function GroupPage({
                           sendNudge(
                             m.nickname,
                             m.missing.map((t) => ROUTINE_LABELS[t]?.label ?? t),
-                            REQUIRED_TYPES
-                              .filter((t) => !m.missing.includes(t))
-                              .map((t) => ROUTINE_LABELS[t]?.label ?? t),
+                            REQUIRED_TYPES.filter(
+                              (t) => !m.missing.includes(t),
+                            ).map((t) => ROUTINE_LABELS[t]?.label ?? t),
                           )
                         }
                         className="mt-auto w-full rounded-xl bg-[#FEE500] py-1.5 text-[11px] font-semibold text-[#3C1E1E]"
@@ -402,6 +415,13 @@ export default function GroupPage({
 
                   const isOwn = item.members?.id === myMemberId;
                   const dateStr = formatDate(item.created_at);
+                  // photo_urls 우선, 없으면 photo_url 하나짜리 배열로 폴백
+                  const photos =
+                    item.photo_urls.length > 0
+                      ? item.photo_urls
+                      : item.photo_url
+                        ? [item.photo_url]
+                        : [];
 
                   if (item.type === "reading" && item.reviews) {
                     return (
@@ -463,19 +483,42 @@ export default function GroupPage({
                     );
                   }
 
-                  if (item.photo_url) {
+                  if (photos.length > 0) {
                     return (
                       <div
                         key={item.id}
                         className="overflow-hidden rounded-2xl bg-gray-50"
                       >
-                        <img
-                          src={item.photo_url}
-                          alt={routine.label}
-                          className="w-full cursor-pointer object-cover"
-                          style={{ maxHeight: 320 }}
-                          onClick={() => setLightboxSrc(item.photo_url!)}
-                        />
+                        {photos.length === 1 ? (
+                          <img
+                            src={photos[0]}
+                            alt={routine.label}
+                            className="w-full cursor-pointer object-cover"
+                            style={{ maxHeight: 320 }}
+                            onClick={() => setLightbox({ srcs: photos, index: 0 })}
+                          />
+                        ) : (
+                          <div className="grid grid-cols-2 gap-0.5">
+                            {photos.slice(0, 4).map((src, i) => (
+                              <div key={i} className="relative">
+                                <img
+                                  src={src}
+                                  alt=""
+                                  className="aspect-square w-full cursor-pointer object-cover"
+                                  onClick={() => setLightbox({ srcs: photos, index: i })}
+                                />
+                                {i === 3 && photos.length > 4 && (
+                                  <div
+                                    className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/50 text-lg font-semibold text-white"
+                                    onClick={() => setLightbox({ srcs: photos, index: 3 })}
+                                  >
+                                    +{photos.length - 4}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <div className="flex items-center justify-between px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-semibold">

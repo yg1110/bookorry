@@ -35,9 +35,11 @@ export async function PATCH(
   if (!log) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json();
-  const updates: Record<string, string> = {};
+  const updates: Record<string, unknown> = {};
   if (body.photo_url !== undefined) updates.photo_url = body.photo_url;
+  if (body.photo_urls !== undefined) updates.photo_urls = body.photo_urls;
   if (body.text_content !== undefined) updates.text_content = body.text_content;
+  if (body.log_date !== undefined) updates.log_date = body.log_date;
 
   const { error } = await supabase
     .from("routine_logs")

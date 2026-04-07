@@ -10,6 +10,7 @@ import { ImageLightbox } from "@/components/image-lightbox";
 import { KakaoShareButton } from "@/components/kakao-share-button";
 import { supabase } from "@/lib/supabase";
 import { relationOne } from "@/lib/supabase-relations";
+import { todayKST } from "@/lib/utils";
 
 type RoutineType = "gym" | "diet" | "duolingo" | "reading" | "self_dev";
 
@@ -17,6 +18,7 @@ interface RoutineLog {
   id: string;
   type: RoutineType;
   photo_url: string | null;
+  photo_urls: string[];
   text_content: string | null;
   member_id: string;
   created_at: string;
@@ -78,7 +80,10 @@ export default function RoutinesPage({
     invite_code: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<{
+    srcs: string[];
+    index: number;
+  } | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -103,11 +108,11 @@ export default function RoutinesPage({
         if (member) setMemberId(member.id);
       }
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = todayKST();
       const { data: logsData } = await supabase
         .from("routine_logs")
         .select(
-          "id, type, photo_url, text_content, member_id, created_at, members(nickname), reviews(books(thumbnail))",
+          "id, type, photo_url, photo_urls, text_content, member_id, created_at, members(nickname), reviews(books(thumbnail))",
         )
         .eq("group_id", groupId)
         .eq("log_date", today)
@@ -115,7 +120,10 @@ export default function RoutinesPage({
 
       type RawLog = Omit<RoutineLog, "members" | "reviews"> & {
         members: RoutineLog["members"] | NonNullable<RoutineLog["members"]>[];
-        reviews: RoutineLog["reviews"] | NonNullable<RoutineLog["reviews"]>[] | null;
+        reviews:
+          | RoutineLog["reviews"]
+          | NonNullable<RoutineLog["reviews"]>[]
+          | null;
       };
       const rawLogs = (logsData as RawLog[] | null) ?? [];
       setLogs(
@@ -123,8 +131,15 @@ export default function RoutinesPage({
           const review = relationOne(l.reviews);
           return {
             ...l,
+            photo_urls: l.photo_urls ?? [],
             members: relationOne(l.members),
-            reviews: review ? { books: relationOne((review as { books: unknown }).books) as { thumbnail: string | null } | null } : null,
+            reviews: review
+              ? {
+                  books: relationOne((review as { books: unknown }).books) as {
+                    thumbnail: string | null;
+                  } | null,
+                }
+              : null,
           };
         }),
       );
@@ -166,8 +181,15 @@ export default function RoutinesPage({
 
   return (
     <>
-      {lightboxSrc && (
-        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      {lightbox && (
+        <ImageLightbox
+          srcs={lightbox.srcs}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onChangeIndex={(i) =>
+            setLightbox((prev) => (prev ? { ...prev, index: i } : null))
+          }
+        />
       )}
       <Header title="오늘의 루틴" back={false} />
       <main className="flex flex-col px-4 pt-4 pb-24">
@@ -203,10 +225,13 @@ export default function RoutinesPage({
                   </div>
 
                   {myDone ? (
-                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-black px-3 py-1.5 text-xs font-medium text-white">
+                    <Link
+                      href={`/routine-logs/${completions.find((l) => l.member_id === memberId)?.id}/edit`}
+                      className="flex shrink-0 items-center gap-1 rounded-full bg-black px-3 py-1.5 text-xs font-medium text-white"
+                    >
                       <CheckCircle2 size={12} />
                       완료
-                    </span>
+                    </Link>
                   ) : (
                     <Link
                       href={href}
@@ -259,26 +284,43 @@ export default function RoutinesPage({
               {logs.map((log) => {
                 const routine = ROUTINES.find((r) => r.type === log.type);
                 const isOwn = log.member_id === memberId;
+                const photos =
+                  log.photo_urls.length > 0
+                    ? log.photo_urls
+                    : log.photo_url
+                      ? [log.photo_url]
+                      : [];
+                // 썸네일: 사진 첫 장 or 책 표지
+                const thumbSrc =
+                  photos[0] ?? log.reviews?.books?.thumbnail ?? null;
+
                 return (
                   <div
                     key={log.id}
                     className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3"
                   >
-                    {log.photo_url ? (
-                      <img
-                        src={log.photo_url}
-                        alt=""
-                        className="h-12 w-12 shrink-0 cursor-pointer rounded-xl object-cover"
-                        onClick={() => setLightboxSrc(log.photo_url!)}
-                      />
-                    ) : log.reviews?.books?.thumbnail ? (
-                      <img
-                        src={log.reviews.books.thumbnail}
-                        alt=""
-                        className="h-12 w-12 shrink-0 rounded-xl object-cover"
-                      />
+                    {thumbSrc ? (
+                      <div className="relative shrink-0">
+                        <img
+                          src={thumbSrc}
+                          alt=""
+                          className="h-12 w-12 cursor-pointer rounded-xl object-cover"
+                          onClick={() =>
+                            photos.length > 0
+                              ? setLightbox({ srcs: photos, index: 0 })
+                              : undefined
+                          }
+                        />
+                        {photos.length > 1 && (
+                          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white">
+                            {photos.length}
+                          </span>
+                        )}
+                      </div>
                     ) : (
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center text-2xl">{routine?.icon}</span>
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center text-2xl">
+                        {routine?.icon}
+                      </span>
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">

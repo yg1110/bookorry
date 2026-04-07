@@ -2,16 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, Plus, X } from "lucide-react";
 import { Header } from "@/components/header";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { supabase } from "@/lib/supabase";
+import { dateToLogDate } from "@/lib/utils";
 
 export default function DuolingoRoutinePage() {
   const router = useRouter();
   const [groupId, setGroupId] = useState<string | null>(null);
   const [memberId, setMemberId] = useState<string | null>(null);
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [logDate, setLogDate] = useState(() => new Date());
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -34,40 +37,53 @@ export default function DuolingoRoutinePage() {
     init();
   }, []);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhoto(file);
-    setPreview(URL.createObjectURL(file));
+  function addFiles(files: FileList | null) {
+    if (!files) return;
+    const newFiles = Array.from(files);
+    setPhotos((prev) => [...prev, ...newFiles]);
+    setPreviews((prev) => [
+      ...prev,
+      ...newFiles.map((f) => URL.createObjectURL(f)),
+    ]);
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit() {
-    if (!photo || !memberId || !groupId) return;
+    if (photos.length === 0 || !memberId || !groupId) return;
     setUploading(true);
 
-    const ext = photo.name.split(".").pop() ?? "jpg";
-    const path = `${groupId}/${memberId}/${Date.now()}.${ext}`;
+    const urls: string[] = [];
+    for (const photo of photos) {
+      const ext = photo.name.split(".").pop() ?? "jpg";
+      const path = `${groupId}/${memberId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("routine-photos")
-      .upload(path, photo);
+      const { error: uploadError } = await supabase.storage
+        .from("routine-photos")
+        .upload(path, photo);
 
-    if (uploadError) {
-      setUploading(false);
-      alert("사진 업로드에 실패했어요. 다시 시도해주세요.");
-      return;
+      if (uploadError) {
+        setUploading(false);
+        alert("사진 업로드에 실패했어요. 다시 시도해주세요.");
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("routine-photos")
+        .getPublicUrl(path);
+      urls.push(publicUrl);
     }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("routine-photos").getPublicUrl(path);
 
     await supabase.from("routine_logs").insert({
       member_id: memberId,
       group_id: groupId,
       type: "duolingo",
-      photo_url: publicUrl,
-      log_date: new Date().toISOString().split("T")[0],
+      photo_url: urls[0],
+      photo_urls: urls,
+      log_date: dateToLogDate(logDate),
     });
 
     router.replace(`/group/${groupId}/routines`);
@@ -85,26 +101,39 @@ export default function DuolingoRoutinePage() {
             오늘의 듀오링고 스트릭 화면을 캡처해서 올려요
           </p>
 
+          <DateTimePicker value={logDate} onChange={setLogDate} />
+
           <input
             ref={inputRef}
             type="file"
             accept="image/*"
+            multiple
             className="hidden"
-            onChange={handleFileChange}
+            onChange={(e) => addFiles(e.target.files)}
           />
 
-          {preview ? (
-            <div className="relative">
-              <img
-                src={preview}
-                alt="미리보기"
-                className="max-h-96 w-full rounded-2xl object-cover"
-              />
+          {previews.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2">
+              {previews.map((src, i) => (
+                <div key={i} className="relative aspect-square">
+                  <img
+                    src={src}
+                    alt=""
+                    className="h-full w-full rounded-2xl object-cover"
+                  />
+                  <button
+                    onClick={() => removePhoto(i)}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
               <button
                 onClick={() => inputRef.current?.click()}
-                className="absolute bottom-3 right-3 rounded-full bg-white/80 px-3 py-1.5 text-xs font-medium backdrop-blur-sm"
+                className="flex aspect-square items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 active:bg-gray-50"
               >
-                다시 선택
+                <Plus size={24} />
               </button>
             </div>
           ) : (
@@ -119,7 +148,7 @@ export default function DuolingoRoutinePage() {
 
           <button
             onClick={handleSubmit}
-            disabled={!photo || uploading}
+            disabled={photos.length === 0 || uploading}
             className="w-full rounded-2xl bg-black py-3 text-sm font-semibold text-white disabled:opacity-40"
           >
             {uploading ? "업로드 중..." : "오늘의 듀오링고 완료 🦜"}

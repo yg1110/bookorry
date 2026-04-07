@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/header";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { supabase } from "@/lib/supabase";
+import { dateToLogDate } from "@/lib/utils";
 
 export default function SelfDevRoutinePage() {
   const router = useRouter();
   const [groupId, setGroupId] = useState<string | null>(null);
   const [memberId, setMemberId] = useState<string | null>(null);
+  const [logDate, setLogDate] = useState(() => new Date());
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -41,7 +44,7 @@ export default function SelfDevRoutinePage() {
       group_id: groupId,
       type: "self_dev",
       text_content: text.trim(),
-      log_date: new Date().toISOString().split("T")[0],
+      log_date: dateToLogDate(logDate),
     });
 
     router.replace(`/group/${groupId}/routines`);
@@ -60,6 +63,7 @@ export default function SelfDevRoutinePage() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-3">
+            <DateTimePicker value={logDate} onChange={setLogDate} />
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
