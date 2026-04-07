@@ -111,6 +111,7 @@ create table routine_logs (
   group_id uuid not null references groups(id) on delete cascade,
   type text not null check (type in ('gym', 'reading', 'diet', 'duolingo', 'self_dev')),
   photo_url text,
+  photo_urls text[] not null default '{}',
   text_content text,
   review_id uuid references reviews(id) on delete set null,
   log_date date not null default current_date,

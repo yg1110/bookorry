@@ -447,7 +447,7 @@ export default function GroupPage({
                               {item.reviews.books?.title}
                             </span>
                           </div>
-                          <p className="mt-2 line-clamp-3 text-sm leading-relaxed">
+                          <p className="mt-2 line-clamp-3 text-sm leading-relaxed whitespace-pre-wrap">
                             {item.reviews.content}
                           </p>
                         </Link>
@@ -568,7 +568,7 @@ export default function GroupPage({
                         </span>
                       </div>
                       {item.text_content && (
-                        <p className="mt-2 text-sm leading-relaxed">
+                        <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">
                           {item.text_content}
                         </p>
                       )}
