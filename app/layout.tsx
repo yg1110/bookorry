@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import Script from "next/script";
 
 import { BottomNav } from "@/components/bottom-nav";
+import { LocatorJs } from "@/components/locator-js";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -35,6 +36,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className={cn("font-sans", geist.variable)}>
       <body className="flex min-h-full flex-col">
+        <LocatorJs />
         <Script
           src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
           strategy="afterInteractive"
