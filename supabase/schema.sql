@@ -109,7 +109,7 @@ create table routine_logs (
   id uuid primary key default gen_random_uuid(),
   member_id uuid not null references members(id) on delete cascade,
   group_id uuid not null references groups(id) on delete cascade,
-  type text not null check (type in ('gym', 'reading', 'diet', 'duolingo', 'self_dev')),
+  type text not null check (type in ('gym', 'reading', 'diet', 'duolingo', 'self_dev', 'skin_care')),
   photo_url text,
   photo_urls text[] not null default '{}',
   text_content text,
@@ -137,3 +137,10 @@ create policy "anyone can update routine_logs"
 create policy "anyone can delete routine_logs"
   on routine_logs for delete
   using (true);
+  
+  ALTER TABLE routine_logs
+    DROP CONSTRAINT IF EXISTS routine_logs_type_check;                                                                                                             
+   
+  ALTER TABLE routine_logs                                                                                                                                         
+    ADD CONSTRAINT routine_logs_type_check                  
+    CHECK (type IN ('gym', 'reading', 'diet', 'duolingo', 'self_dev', 'skin_care'));

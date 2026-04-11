@@ -3,6 +3,7 @@
 import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
+
 import { Header } from "@/components/header";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { supabase } from "@/lib/supabase";
@@ -14,6 +15,7 @@ const ROUTINE_LABELS: Record<string, string> = {
   duolingo: "듀오링고",
   reading: "독서",
   self_dev: "자기개발",
+  skin_care: "피부관리",
 };
 
 interface RoutineLog {
@@ -49,7 +51,9 @@ export default function EditRoutineLogPage({
     async function load() {
       const { data } = await supabase
         .from("routine_logs")
-        .select("id, type, photo_url, photo_urls, text_content, review_id, group_id, log_date")
+        .select(
+          "id, type, photo_url, photo_urls, text_content, review_id, group_id, log_date",
+        )
         .eq("id", id)
         .single();
 
@@ -119,7 +123,10 @@ export default function EditRoutineLogPage({
           "Content-Type": "application/json",
           "x-session-token": sessionToken ?? "",
         },
-        body: JSON.stringify({ text_content: text.trim(), log_date: updatedLogDate }),
+        body: JSON.stringify({
+          text_content: text.trim(),
+          log_date: updatedLogDate,
+        }),
       });
     } else {
       const uploadedUrls: string[] = [];
@@ -137,9 +144,9 @@ export default function EditRoutineLogPage({
           return;
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("routine-photos")
-          .getPublicUrl(path);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("routine-photos").getPublicUrl(path);
         uploadedUrls.push(publicUrl);
       }
 
@@ -172,7 +179,9 @@ export default function EditRoutineLogPage({
 
   if (!log) return null;
 
-  const isPhotoType = ["gym", "diet", "duolingo"].includes(log.type);
+  const isPhotoType = ["gym", "diet", "duolingo", "skin_care"].includes(
+    log.type,
+  );
   const label = ROUTINE_LABELS[log.type] ?? log.type;
   const totalPhotos = existingUrls.length + newFiles.length;
 
@@ -204,7 +213,7 @@ export default function EditRoutineLogPage({
                     />
                     <button
                       onClick={() => removeExisting(i)}
-                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white"
+                      className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white"
                     >
                       <X size={12} />
                     </button>
@@ -219,7 +228,7 @@ export default function EditRoutineLogPage({
                     />
                     <button
                       onClick={() => removeNew(i)}
-                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white"
+                      className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white"
                     >
                       <X size={12} />
                     </button>
@@ -235,7 +244,7 @@ export default function EditRoutineLogPage({
 
               <button
                 onClick={handleSave}
-                disabled={saving || totalPhotos === 0}
+                disabled={saving || (log.type !== "skin_care" && totalPhotos === 0)}
                 className="w-full rounded-2xl bg-black py-3 text-sm font-semibold text-white disabled:opacity-40"
               >
                 {saving ? "저장 중..." : "저장"}

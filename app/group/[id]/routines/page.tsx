@@ -12,7 +12,13 @@ import { supabase } from "@/lib/supabase";
 import { relationOne } from "@/lib/supabase-relations";
 import { todayKST } from "@/lib/utils";
 
-type RoutineType = "gym" | "diet" | "duolingo" | "reading" | "self_dev";
+type RoutineType =
+  | "gym"
+  | "diet"
+  | "duolingo"
+  | "reading"
+  | "self_dev"
+  | "skin_care";
 
 interface RoutineLog {
   id: string;
@@ -56,6 +62,13 @@ const ROUTINES = [
     href: "/routines/reading",
   },
   {
+    type: "skin_care" as const,
+    label: "피부관리",
+    icon: "🧴",
+    desc: "스킨케어 루틴 인증하기",
+    href: "/routines/skin-care",
+  },
+  {
     type: "self_dev" as const,
     label: "자기개발",
     icon: "💡",
@@ -64,6 +77,149 @@ const ROUTINES = [
     optional: true,
   },
 ] as const;
+
+// ── RoutineCard ────────────────────────────────────────────────────────────────
+
+interface RoutineCardProps {
+  routine: (typeof ROUTINES)[number];
+  completions: RoutineLog[];
+  memberId: string | null;
+}
+
+function RoutineCard({ routine, completions, memberId }: RoutineCardProps) {
+  const myDone = completions.some((l) => l.member_id === memberId);
+  const myLog = completions.find((l) => l.member_id === memberId);
+
+  return (
+    <div className="rounded-2xl border border-gray-100 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{routine.icon}</span>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-semibold">{routine.label}</span>
+              {"optional" in routine && routine.optional && (
+                <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-400">
+                  선택
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-400">{routine.desc}</p>
+          </div>
+        </div>
+
+        {myDone ? (
+          <Link
+            href={`/routine-logs/${myLog?.id}/edit`}
+            className="flex shrink-0 items-center gap-1 rounded-full bg-black px-3 py-1.5 text-xs font-medium text-white"
+          >
+            <CheckCircle2 size={12} />
+            완료
+          </Link>
+        ) : (
+          <Link
+            href={routine.href}
+            className="shrink-0 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 active:bg-gray-50"
+          >
+            완료하기
+          </Link>
+        )}
+      </div>
+
+      {completions.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {completions.map((log) => (
+            <span
+              key={log.id}
+              className="rounded-full bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
+            >
+              {log.members?.nickname}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── LogItem ────────────────────────────────────────────────────────────────────
+
+interface LogItemProps {
+  log: RoutineLog;
+  memberId: string | null;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  onOpenLightbox: (srcs: string[], index: number) => void;
+}
+
+function LogItem({
+  log,
+  memberId,
+  onEdit,
+  onDelete,
+  onOpenLightbox,
+}: LogItemProps) {
+  const routine = ROUTINES.find((r) => r.type === log.type);
+  const isOwn = log.member_id === memberId;
+  const photos =
+    log.photo_urls.length > 0
+      ? log.photo_urls
+      : log.photo_url
+        ? [log.photo_url]
+        : [];
+  const thumbSrc = photos[0] ?? log.reviews?.books?.thumbnail ?? null;
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3">
+      {thumbSrc ? (
+        <div className="relative shrink-0">
+          <img
+            src={thumbSrc}
+            alt=""
+            className="h-12 w-12 cursor-pointer rounded-xl object-cover"
+            onClick={() =>
+              photos.length > 0 ? onOpenLightbox(photos, 0) : undefined
+            }
+          />
+          {photos.length > 1 && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white">
+              {photos.length}
+            </span>
+          )}
+        </div>
+      ) : (
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center text-2xl">
+          {routine?.icon}
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">{log.members?.nickname}</p>
+        <p className="truncate text-xs text-gray-400">
+          {routine?.label}
+          {log.text_content && ` · ${log.text_content}`}
+        </p>
+      </div>
+      {isOwn && (
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            onClick={() => onEdit(log.id)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={() => onDelete(log.id)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function RoutinesPage({
   params,
@@ -196,67 +352,14 @@ export default function RoutinesPage({
         <div className="mx-auto w-full max-w-md space-y-3">
           <p className="text-xs text-gray-400">{today}</p>
 
-          {ROUTINES.map((routine) => {
-            const completions = logsByType[routine.type] ?? [];
-            const myDone = completions.some((l) => l.member_id === memberId);
-            const href = routine.href;
-
-            return (
-              <div
-                key={routine.type}
-                className="rounded-2xl border border-gray-100 p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{routine.icon}</span>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold">
-                          {routine.label}
-                        </span>
-                        {"optional" in routine && routine.optional && (
-                          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-400">
-                            선택
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-400">{routine.desc}</p>
-                    </div>
-                  </div>
-
-                  {myDone ? (
-                    <Link
-                      href={`/routine-logs/${completions.find((l) => l.member_id === memberId)?.id}/edit`}
-                      className="flex shrink-0 items-center gap-1 rounded-full bg-black px-3 py-1.5 text-xs font-medium text-white"
-                    >
-                      <CheckCircle2 size={12} />
-                      완료
-                    </Link>
-                  ) : (
-                    <Link
-                      href={href}
-                      className="shrink-0 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 active:bg-gray-50"
-                    >
-                      완료하기
-                    </Link>
-                  )}
-                </div>
-
-                {completions.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {completions.map((log) => (
-                      <span
-                        key={log.id}
-                        className="rounded-full bg-gray-50 px-2 py-0.5 text-xs text-gray-600"
-                      >
-                        {log.members?.nickname}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {ROUTINES.map((routine) => (
+            <RoutineCard
+              key={routine.type}
+              routine={routine}
+              completions={logsByType[routine.type] ?? []}
+              memberId={memberId}
+            />
+          ))}
 
           {group && (
             <KakaoShareButton
@@ -281,77 +384,16 @@ export default function RoutinesPage({
               <h2 className="text-xs font-semibold tracking-widest text-gray-400 uppercase">
                 오늘의 기록
               </h2>
-              {logs.map((log) => {
-                const routine = ROUTINES.find((r) => r.type === log.type);
-                const isOwn = log.member_id === memberId;
-                const photos =
-                  log.photo_urls.length > 0
-                    ? log.photo_urls
-                    : log.photo_url
-                      ? [log.photo_url]
-                      : [];
-                // 썸네일: 사진 첫 장 or 책 표지
-                const thumbSrc =
-                  photos[0] ?? log.reviews?.books?.thumbnail ?? null;
-
-                return (
-                  <div
-                    key={log.id}
-                    className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3"
-                  >
-                    {thumbSrc ? (
-                      <div className="relative shrink-0">
-                        <img
-                          src={thumbSrc}
-                          alt=""
-                          className="h-12 w-12 cursor-pointer rounded-xl object-cover"
-                          onClick={() =>
-                            photos.length > 0
-                              ? setLightbox({ srcs: photos, index: 0 })
-                              : undefined
-                          }
-                        />
-                        {photos.length > 1 && (
-                          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white">
-                            {photos.length}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center text-2xl">
-                        {routine?.icon}
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">
-                        {log.members?.nickname}
-                      </p>
-                      <p className="truncate text-xs text-gray-400">
-                        {routine?.label}
-                        {log.text_content && ` · ${log.text_content}`}
-                      </p>
-                    </div>
-                    {isOwn && (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          onClick={() =>
-                            router.push(`/routine-logs/${log.id}/edit`)
-                          }
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(log.id)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 active:bg-gray-200"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {logs.map((log) => (
+                <LogItem
+                  key={log.id}
+                  log={log}
+                  memberId={memberId}
+                  onEdit={(id) => router.push(`/routine-logs/${id}/edit`)}
+                  onDelete={handleDelete}
+                  onOpenLightbox={(srcs, index) => setLightbox({ srcs, index })}
+                />
+              ))}
             </section>
           )}
         </div>
