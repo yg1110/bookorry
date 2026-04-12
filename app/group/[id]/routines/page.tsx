@@ -18,7 +18,8 @@ type RoutineType =
   | "duolingo"
   | "reading"
   | "self_dev"
-  | "skin_care";
+  | "skin_care"
+  | "online_lecture";
 
 interface RoutineLog {
   id: string;
@@ -67,6 +68,13 @@ const ROUTINES = [
     icon: "🧴",
     desc: "스킨케어 루틴 인증하기",
     href: "/routines/skin-care",
+  },
+  {
+    type: "online_lecture" as const,
+    label: "인강 듣기",
+    icon: "🎧",
+    desc: "자격증, 운전, 어학 등 인강 인증",
+    href: "/routines/online-lecture",
   },
   {
     type: "self_dev" as const,

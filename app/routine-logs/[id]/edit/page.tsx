@@ -16,6 +16,7 @@ const ROUTINE_LABELS: Record<string, string> = {
   reading: "독서",
   self_dev: "자기개발",
   skin_care: "피부관리",
+  online_lecture: "인강 듣기",
 };
 
 interface RoutineLog {
