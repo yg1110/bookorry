@@ -23,7 +23,15 @@ const ROUTINE_LABELS: Record<string, { label: string; icon: string }> = {
   self_dev: { label: "자기개발", icon: "💡" },
 };
 
-const REQUIRED_TYPES = ["gym", "diet", "duolingo", "reading"] as const;
+const REQUIRED_TYPES = [
+  "gym",
+  "diet",
+  "duolingo",
+  "reading",
+  "skin_care",
+  "online_lecture",
+  "running",
+] as const;
 
 interface Member {
   id: string;
@@ -84,6 +92,7 @@ export default function GroupPage({
     { type: string; member_id: string }[]
   >([]);
   const [lightbox, setLightbox] = useState<{ srcs: string[]; index: number } | null>(null);
+  const [filterType, setFilterType] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -310,23 +319,43 @@ export default function GroupPage({
       />
       <main className="flex flex-col px-4 pt-4 pb-24">
         <div className="mx-auto w-full max-w-md space-y-5">
-          <div className="flex flex-wrap gap-2">
-            {members.map((m) => {
-              const active = filterMemberId === m.id;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => setFilterMemberId(active ? null : m.id)}
-                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                    active
-                      ? "border-black bg-black text-white"
-                      : "border-gray-200 text-gray-700"
-                  }`}
-                >
-                  {m.nickname}
-                </button>
-              );
-            })}
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {members.map((m) => {
+                const active = filterMemberId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setFilterMemberId(active ? null : m.id)}
+                    className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                      active
+                        ? "border-black bg-black text-white"
+                        : "border-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {m.nickname}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(ROUTINE_LABELS).map(([type, { label, icon }]) => {
+                const active = filterType === type;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setFilterType(active ? null : type)}
+                    className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                      active
+                        ? "border-black bg-black text-white"
+                        : "border-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {icon} {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* 오늘 미완료 루틴 현황 */}
@@ -389,9 +418,9 @@ export default function GroupPage({
           })()}
 
           {(() => {
-            const filtered = filterMemberId
-              ? feed.filter((item) => item.members?.id === filterMemberId)
-              : feed;
+            const filtered = feed
+              .filter((item) => !filterMemberId || item.members?.id === filterMemberId)
+              .filter((item) => !filterType || item.type === filterType);
 
             if (filtered.length === 0) {
               return (
