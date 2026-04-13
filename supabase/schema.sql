@@ -137,6 +137,30 @@ create policy "anyone can update routine_logs"
 create policy "anyone can delete routine_logs"
   on routine_logs for delete
   using (true);
+
+-- Per-member routine requirements
+create table member_routine_requirements (
+  member_id uuid not null references members(id) on delete cascade,
+  group_id uuid not null references groups(id) on delete cascade,
+  routine_type text not null,
+  -- 0 = 선택(optional), 1-6 = 주N일, 7 = 매일
+  weekly_target int not null default 1 check (weekly_target >= 0 and weekly_target <= 7),
+  primary key (member_id, routine_type)
+);
+
+alter table member_routine_requirements enable row level security;
+
+create policy "anyone can read member_routine_requirements"
+  on member_routine_requirements for select using (true);
+
+create policy "anyone can insert member_routine_requirements"
+  on member_routine_requirements for insert with check (true);
+
+create policy "anyone can update member_routine_requirements"
+  on member_routine_requirements for update using (true);
+
+create policy "anyone can delete member_routine_requirements"
+  on member_routine_requirements for delete using (true);
   
   ALTER TABLE routine_logs
     DROP CONSTRAINT IF EXISTS routine_logs_type_check;                                                                                                             

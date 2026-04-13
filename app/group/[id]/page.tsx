@@ -23,15 +23,22 @@ const ROUTINE_LABELS: Record<string, { label: string; icon: string }> = {
   self_dev: { label: "자기개발", icon: "💡" },
 };
 
-const REQUIRED_TYPES = [
-  "gym",
-  "diet",
-  "duolingo",
-  "reading",
-  "skin_care",
-  "online_lecture",
-  "running",
-] as const;
+// 0 = 선택, 1-6 = 주N일, 7 = 매일
+const DEFAULT_TARGETS: Record<string, number> = {
+  gym: 5, reading: 5, running: 3,
+  diet: 7, duolingo: 7,
+  skin_care: 0, online_lecture: 0, self_dev: 0,
+};
+
+function weekStartKST(): string {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const day = kst.getUTCDay();
+  const diff = day === 0 ? 6 : day - 1;
+  const monday = new Date(kst);
+  monday.setUTCDate(kst.getUTCDate() - diff);
+  return monday.toISOString().slice(0, 10);
+}
 
 interface Member {
   id: string;
@@ -88,16 +95,20 @@ export default function GroupPage({
   const [copied, setCopied] = useState(false);
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null);
   const [myMemberId, setMyMemberId] = useState<string | null>(null);
-  const [todayDone, setTodayDone] = useState<
-    { type: string; member_id: string }[]
+  const [weekLogs, setWeekLogs] = useState<
+    { type: string; member_id: string; log_date: string }[]
   >([]);
+  const [memberRequirements, setMemberRequirements] = useState<
+    Record<string, Record<string, number>>
+  >({});
   const [lightbox, setLightbox] = useState<{ srcs: string[]; index: number } | null>(null);
   const [filterType, setFilterType] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       const today = todayKST();
-      const [groupRes, membersRes, logsRes, reviewsRes, todayRes] =
+      const weekStart = weekStartKST();
+      const [groupRes, membersRes, logsRes, reviewsRes, weekRes, reqsRes] =
         await Promise.all([
           supabase
             .from("groups")
@@ -127,9 +138,14 @@ export default function GroupPage({
             .limit(50),
           supabase
             .from("routine_logs")
-            .select("type, member_id")
+            .select("type, member_id, log_date")
             .eq("group_id", id)
-            .eq("log_date", today),
+            .gte("log_date", weekStart)
+            .lte("log_date", today),
+          supabase
+            .from("member_routine_requirements")
+            .select("member_id, routine_type, weekly_target")
+            .eq("group_id", id),
         ]);
 
       if (groupRes.error || !groupRes.data) {
@@ -205,7 +221,15 @@ export default function GroupPage({
       );
 
       setFeed(merged);
-      setTodayDone(todayRes.data ?? []);
+      setWeekLogs(weekRes.data ?? []);
+
+      // member_id → { routine_type → weekly_target }
+      const reqMap: Record<string, Record<string, number>> = {};
+      for (const r of reqsRes.data ?? []) {
+        if (!reqMap[r.member_id]) reqMap[r.member_id] = {};
+        reqMap[r.member_id][r.routine_type] = r.weekly_target;
+      }
+      setMemberRequirements(reqMap);
       setLoading(false);
     }
 
@@ -358,16 +382,29 @@ export default function GroupPage({
             </div>
           </div>
 
-          {/* 오늘 미완료 루틴 현황 */}
+          {/* 미완료 루틴 현황 */}
           {(() => {
+            const today = todayKST();
             const incomplete = members
               .map((m) => {
-                const done = new Set(
-                  todayDone
-                    .filter((l) => l.member_id === m.id)
-                    .map((l) => l.type),
-                );
-                const missing = REQUIRED_TYPES.filter((t) => !done.has(t));
+                const memberLogs = weekLogs.filter((l) => l.member_id === m.id);
+                // DB 설정 우선, 없으면 기본값
+                const reqs = { ...DEFAULT_TARGETS, ...(memberRequirements[m.id] ?? {}) };
+                const missing = Object.entries(reqs)
+                  .filter(([, target]) => target > 0)
+                  .flatMap(([type, target]) => {
+                    if (target === 7) {
+                      const doneToday = memberLogs.some(
+                        (l) => l.type === type && l.log_date === today,
+                      );
+                      return doneToday ? [] : [{ type, detail: "" }];
+                    } else {
+                      const count = memberLogs.filter((l) => l.type === type).length;
+                      return count >= target
+                        ? []
+                        : [{ type, detail: `${count}/${target}` }];
+                    }
+                  });
                 return { ...m, missing };
               })
               .filter((m) => m.missing.length > 0);
@@ -377,7 +414,7 @@ export default function GroupPage({
             return (
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-gray-400">
-                  오늘 미완료 루틴
+                  미완료 루틴
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {incomplete.map((m) => (
@@ -387,25 +424,40 @@ export default function GroupPage({
                     >
                       <p className="text-xs font-semibold">{m.nickname}</p>
                       <div className="flex flex-wrap gap-1">
-                        {m.missing.map((t) => (
+                        {m.missing.map(({ type, detail }) => (
                           <span
-                            key={t}
+                            key={type}
                             className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500"
                           >
-                            {ROUTINE_LABELS[t]?.icon} {ROUTINE_LABELS[t]?.label}
+                            {ROUTINE_LABELS[type]?.icon}{" "}
+                            {ROUTINE_LABELS[type]?.label}
+                            {detail && (
+                              <span className="ml-0.5 text-gray-400">
+                                {" "}{detail}
+                              </span>
+                            )}
                           </span>
                         ))}
                       </div>
                       <button
-                        onClick={() =>
+                        onClick={() => {
+                          const reqs = { ...DEFAULT_TARGETS, ...(memberRequirements[m.id] ?? {}) };
                           sendNudge(
                             m.nickname,
-                            m.missing.map((t) => ROUTINE_LABELS[t]?.label ?? t),
-                            REQUIRED_TYPES.filter(
-                              (t) => !m.missing.includes(t),
-                            ).map((t) => ROUTINE_LABELS[t]?.label ?? t),
-                          )
-                        }
+                            m.missing.map(({ type, detail }) =>
+                              detail
+                                ? `${ROUTINE_LABELS[type]?.label ?? type} (${detail})`
+                                : (ROUTINE_LABELS[type]?.label ?? type),
+                            ),
+                            Object.keys(reqs)
+                              .filter(
+                                (t) =>
+                                  reqs[t] > 0 &&
+                                  !m.missing.some((mi) => mi.type === t),
+                              )
+                              .map((t) => ROUTINE_LABELS[t]?.label ?? t),
+                          );
+                        }}
                         className="mt-auto w-full rounded-xl bg-[#FEE500] py-1.5 text-[11px] font-semibold text-[#3C1E1E]"
                       >
                         카톡으로 재촉 👉

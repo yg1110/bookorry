@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, Pencil, Settings, Trash2 } from "lucide-react";
 
 import { Header } from "@/components/header";
 import { ImageLightbox } from "@/components/image-lightbox";
@@ -36,59 +36,61 @@ interface RoutineLog {
 
 const ROUTINES = [
   {
-    type: "gym" as const,
-    label: "운동",
-    icon: "🏋️",
-    desc: "입구 사진 찍기",
-    href: "/routines/gym",
-  },
-  {
-    type: "running" as const,
-    label: "런닝",
-    icon: "🏃",
-    desc: "러닝 기록 인증하기",
-    href: "/routines/running",
-  },
-  {
     type: "diet" as const,
     label: "식단",
     icon: "🍱",
-    desc: "식단 사진 올리기",
+    desc: "매일 · 식단 사진 올리기",
     href: "/routines/diet",
   },
   {
     type: "duolingo" as const,
     label: "듀오링고",
     icon: "🦜",
-    desc: "스트릭 인증하기",
+    desc: "매일 · 스트릭 인증하기",
     href: "/routines/duolingo",
+  },
+  {
+    type: "gym" as const,
+    label: "운동",
+    icon: "🏋️",
+    desc: "주 5일 · 입구 사진 찍기",
+    href: "/routines/gym",
   },
   {
     type: "reading" as const,
     label: "독서",
     icon: "📚",
-    desc: "5분 읽고 독후감 쓰기",
+    desc: "주 5일 · 5분 읽고 독후감 쓰기",
     href: "/routines/reading",
+  },
+  {
+    type: "running" as const,
+    label: "런닝",
+    icon: "🏃",
+    desc: "주 3일 · 최소 500m 런닝 인증",
+    href: "/routines/running",
   },
   {
     type: "skin_care" as const,
     label: "피부관리",
     icon: "🧴",
-    desc: "스킨케어 루틴 인증하기",
+    desc: "선택 · 스킨케어 루틴 인증",
     href: "/routines/skin-care",
+    optional: true,
   },
   {
     type: "online_lecture" as const,
     label: "인강 듣기",
     icon: "🎧",
-    desc: "자격증, 운전, 어학 등 인강 인증",
+    desc: "선택 · 자격증, 운전, 어학 등",
     href: "/routines/online-lecture",
+    optional: true,
   },
   {
     type: "self_dev" as const,
     label: "자기개발",
     icon: "💡",
-    desc: "오늘 배운 것 공유하기",
+    desc: "선택 · 오늘 배운 것 공유하기",
     href: "/routines/self-dev",
     optional: true,
   },
@@ -363,7 +365,18 @@ export default function RoutinesPage({
           }
         />
       )}
-      <Header title="오늘의 루틴" back={false} />
+      <Header
+        title="오늘의 루틴"
+        back={false}
+        right={
+          <Link
+            href={`/group/${groupId}/routines/settings`}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 active:bg-gray-100"
+          >
+            <Settings size={18} />
+          </Link>
+        }
+      />
       <main className="flex flex-col px-4 pt-4 pb-24">
         <div className="mx-auto w-full max-w-md space-y-3">
           <p className="text-xs text-gray-400">{today}</p>
