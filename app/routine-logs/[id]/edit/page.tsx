@@ -17,6 +17,7 @@ const ROUTINE_LABELS: Record<string, string> = {
   self_dev: "자기개발",
   skin_care: "피부관리",
   online_lecture: "인강 듣기",
+  running: "런닝",
 };
 
 interface RoutineLog {
@@ -161,6 +162,7 @@ export default function EditRoutineLogPage({
         body: JSON.stringify({
           photo_url: finalUrls[0] ?? null,
           photo_urls: finalUrls,
+          ...(log.type === "skin_care" && { text_content: text.trim() || null }),
           log_date: updatedLogDate,
         }),
       });
@@ -180,7 +182,7 @@ export default function EditRoutineLogPage({
 
   if (!log) return null;
 
-  const isPhotoType = ["gym", "diet", "duolingo", "skin_care"].includes(
+  const isPhotoType = ["gym", "diet", "duolingo", "skin_care", "running"].includes(
     log.type,
   );
   const label = ROUTINE_LABELS[log.type] ?? log.type;
@@ -242,6 +244,16 @@ export default function EditRoutineLogPage({
                   <Plus size={24} />
                 </button>
               </div>
+
+              {log.type === "skin_care" && (
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="오늘 사용한 제품이나 루틴 메모 (선택)"
+                  rows={3}
+                  className="w-full resize-none rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
+                />
+              )}
 
               <button
                 onClick={handleSave}

@@ -19,7 +19,8 @@ type RoutineType =
   | "reading"
   | "self_dev"
   | "skin_care"
-  | "online_lecture";
+  | "online_lecture"
+  | "running";
 
 interface RoutineLog {
   id: string;
@@ -40,6 +41,13 @@ const ROUTINES = [
     icon: "🏋️",
     desc: "입구 사진 찍기",
     href: "/routines/gym",
+  },
+  {
+    type: "running" as const,
+    label: "런닝",
+    icon: "🏃",
+    desc: "러닝 기록 인증하기",
+    href: "/routines/running",
   },
   {
     type: "diet" as const,

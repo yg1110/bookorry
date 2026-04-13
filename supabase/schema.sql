@@ -109,7 +109,7 @@ create table routine_logs (
   id uuid primary key default gen_random_uuid(),
   member_id uuid not null references members(id) on delete cascade,
   group_id uuid not null references groups(id) on delete cascade,
-  type text not null check (type in ('gym', 'reading', 'diet', 'duolingo', 'self_dev', 'skin_care', 'online_lecture')),
+  type text not null check (type in ('gym', 'reading', 'diet', 'duolingo', 'self_dev', 'skin_care', 'online_lecture', 'running')),
   photo_url text,
   photo_urls text[] not null default '{}',
   text_content text,

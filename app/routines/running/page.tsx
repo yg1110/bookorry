@@ -8,14 +8,13 @@ import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { supabase } from "@/lib/supabase";
 import { dateToLogDate } from "@/lib/utils";
 
-export default function SkinCareRoutinePage() {
+export default function RunningRoutinePage() {
   const router = useRouter();
   const [groupId, setGroupId] = useState<string | null>(null);
   const [memberId, setMemberId] = useState<string | null>(null);
   const [logDate, setLogDate] = useState(() => new Date());
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [text, setText] = useState("");
   const [uploading, setUploading] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -55,7 +54,7 @@ export default function SkinCareRoutinePage() {
   }
 
   async function handleSubmit() {
-    if (!memberId || !groupId) return;
+    if (photos.length === 0 || !memberId || !groupId) return;
     setUploading(true);
 
     const urls: string[] = [];
@@ -82,10 +81,9 @@ export default function SkinCareRoutinePage() {
     await supabase.from("routine_logs").insert({
       member_id: memberId,
       group_id: groupId,
-      type: "skin_care",
-      photo_url: urls[0] ?? null,
+      type: "running",
+      photo_url: urls[0],
       photo_urls: urls,
-      text_content: text.trim() || null,
       log_date: dateToLogDate(logDate),
     });
 
@@ -95,13 +93,13 @@ export default function SkinCareRoutinePage() {
   return (
     <>
       <Header
-        title="피부관리"
+        title="런닝"
         backHref={groupId ? `/group/${groupId}/routines` : undefined}
       />
       <main className="flex flex-col px-4 pt-6 pb-24">
         <div className="mx-auto w-full max-w-md space-y-4">
           <p className="text-sm text-gray-500">
-            오늘의 스킨케어 루틴을 완료했나요? 사진과 메모는 선택이에요 🧴
+            러닝 앱 기록 화면을 캡처해서 인증해요 🏃
           </p>
 
           <DateTimePicker value={logDate} onChange={setLogDate} />
@@ -152,14 +150,14 @@ export default function SkinCareRoutinePage() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 active:bg-gray-50"
+                className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 active:bg-gray-50"
               >
                 <Camera size={28} />
                 <span className="text-sm">사진 찍기</span>
               </button>
               <button
                 onClick={() => galleryInputRef.current?.click()}
-                className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 active:bg-gray-50"
+                className="flex h-40 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 active:bg-gray-50"
               >
                 <Images size={28} />
                 <span className="text-sm">사진 목록에서 선택</span>
@@ -167,20 +165,12 @@ export default function SkinCareRoutinePage() {
             </div>
           )}
 
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="오늘 사용한 제품이나 루틴 메모 (선택)"
-            rows={3}
-            className="w-full resize-none rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
-          />
-
           <button
             onClick={handleSubmit}
-            disabled={uploading}
+            disabled={photos.length === 0 || uploading}
             className="w-full rounded-2xl bg-black py-3 text-sm font-semibold text-white disabled:opacity-40"
           >
-            {uploading ? "업로드 중..." : "오늘의 피부관리 완료 🧴"}
+            {uploading ? "업로드 중..." : "오늘의 런닝 완료 🏃"}
           </button>
         </div>
       </main>

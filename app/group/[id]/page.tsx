@@ -17,6 +17,9 @@ const ROUTINE_LABELS: Record<string, { label: string; icon: string }> = {
   diet: { label: "식단", icon: "🍱" },
   duolingo: { label: "듀오링고", icon: "🦜" },
   reading: { label: "독서", icon: "📚" },
+  skin_care: { label: "피부관리", icon: "🧴" },
+  online_lecture: { label: "인강 듣기", icon: "🎧" },
+  running: { label: "런닝", icon: "🏃" },
   self_dev: { label: "자기개발", icon: "💡" },
 };
 
