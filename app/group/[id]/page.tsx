@@ -384,7 +384,6 @@ export default function GroupPage({
 
           {/* 미완료 루틴 현황 */}
           {(() => {
-            const today = todayKST();
             const incomplete = members
               .map((m) => {
                 const memberLogs = weekLogs.filter((l) => l.member_id === m.id);
@@ -393,17 +392,8 @@ export default function GroupPage({
                 const missing = Object.entries(reqs)
                   .filter(([, target]) => target > 0)
                   .flatMap(([type, target]) => {
-                    if (target === 7) {
-                      const doneToday = memberLogs.some(
-                        (l) => l.type === type && l.log_date === today,
-                      );
-                      return doneToday ? [] : [{ type, detail: "" }];
-                    } else {
-                      const count = memberLogs.filter((l) => l.type === type).length;
-                      return count >= target
-                        ? []
-                        : [{ type, detail: `${count}/${target}` }];
-                    }
+                    const count = memberLogs.filter((l) => l.type === type).length;
+                    return count >= target ? [] : [{ type, detail: `${count}/${target}` }];
                   });
                 return { ...m, missing };
               })
@@ -414,7 +404,7 @@ export default function GroupPage({
             return (
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-gray-400">
-                  미완료 루틴
+                  이번 주 미완료 루틴
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {incomplete.map((m) => (
