@@ -35,66 +35,27 @@ interface RoutineLog {
 }
 
 const ROUTINES = [
-  {
-    type: "diet" as const,
-    label: "식단",
-    icon: "🍱",
-    desc: "매일 · 식단 사진 올리기",
-    href: "/routines/diet",
-  },
-  {
-    type: "duolingo" as const,
-    label: "듀오링고",
-    icon: "🦜",
-    desc: "매일 · 스트릭 인증하기",
-    href: "/routines/duolingo",
-  },
-  {
-    type: "gym" as const,
-    label: "운동",
-    icon: "🏋️",
-    desc: "주 5일 · 입구 사진 찍기",
-    href: "/routines/gym",
-  },
-  {
-    type: "reading" as const,
-    label: "독서",
-    icon: "📚",
-    desc: "주 5일 · 5분 읽고 독후감 쓰기",
-    href: "/routines/reading",
-  },
-  {
-    type: "running" as const,
-    label: "런닝",
-    icon: "🏃",
-    desc: "주 3일 · 최소 500m 런닝 인증",
-    href: "/routines/running",
-  },
-  {
-    type: "skin_care" as const,
-    label: "피부관리",
-    icon: "🧴",
-    desc: "선택 · 스킨케어 루틴 인증",
-    href: "/routines/skin-care",
-    optional: true,
-  },
-  {
-    type: "online_lecture" as const,
-    label: "인강 듣기",
-    icon: "🎧",
-    desc: "선택 · 자격증, 운전, 어학 등",
-    href: "/routines/online-lecture",
-    optional: true,
-  },
-  {
-    type: "self_dev" as const,
-    label: "자기개발",
-    icon: "💡",
-    desc: "선택 · 오늘 배운 것 공유하기",
-    href: "/routines/self-dev",
-    optional: true,
-  },
+  { type: "diet" as const,           label: "식단",     icon: "🍱", desc: "식단 사진 올리기",        href: "/routines/diet" },
+  { type: "duolingo" as const,       label: "듀오링고", icon: "🦜", desc: "스트릭 인증하기",          href: "/routines/duolingo" },
+  { type: "gym" as const,            label: "운동",     icon: "🏋️", desc: "입구 사진 찍기",          href: "/routines/gym" },
+  { type: "reading" as const,        label: "독서",     icon: "📚", desc: "5분 읽고 독후감 쓰기",    href: "/routines/reading" },
+  { type: "running" as const,        label: "런닝",     icon: "🏃", desc: "최소 500m 런닝 인증",     href: "/routines/running" },
+  { type: "skin_care" as const,      label: "피부관리", icon: "🧴", desc: "스킨케어 루틴 인증",       href: "/routines/skin-care" },
+  { type: "online_lecture" as const, label: "인강 듣기",icon: "🎧", desc: "자격증, 운전, 어학 등",   href: "/routines/online-lecture" },
+  { type: "self_dev" as const,       label: "자기개발", icon: "💡", desc: "오늘 배운 것 공유하기",   href: "/routines/self-dev" },
 ] as const;
+
+function freqLabel(target: number): string {
+  if (target === 0) return "선택";
+  if (target === 7) return "매일";
+  return `주 ${target}일`;
+}
+
+const DEFAULT_TARGETS: Record<string, number> = {
+  gym: 5, reading: 5, running: 3,
+  diet: 7, duolingo: 7,
+  skin_care: 0, online_lecture: 0, self_dev: 0,
+};
 
 // ── RoutineCard ────────────────────────────────────────────────────────────────
 
@@ -102,9 +63,10 @@ interface RoutineCardProps {
   routine: (typeof ROUTINES)[number];
   completions: RoutineLog[];
   memberId: string | null;
+  weeklyTarget: number;
 }
 
-function RoutineCard({ routine, completions, memberId }: RoutineCardProps) {
+function RoutineCard({ routine, completions, memberId, weeklyTarget }: RoutineCardProps) {
   const myDone = completions.some((l) => l.member_id === memberId);
   const myLog = completions.find((l) => l.member_id === memberId);
 
@@ -116,13 +78,15 @@ function RoutineCard({ routine, completions, memberId }: RoutineCardProps) {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-semibold">{routine.label}</span>
-              {"optional" in routine && routine.optional && (
+              {weeklyTarget === 0 && (
                 <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-400">
                   선택
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400">{routine.desc}</p>
+            <p className="text-xs text-gray-400">
+              {freqLabel(weeklyTarget)} · {routine.desc}
+            </p>
           </div>
         </div>
 
@@ -249,6 +213,7 @@ export default function RoutinesPage({
 
   const [logs, setLogs] = useState<RoutineLog[]>([]);
   const [memberId, setMemberId] = useState<string | null>(null);
+  const [memberTargets, setMemberTargets] = useState<Record<string, number>>(DEFAULT_TARGETS);
   const [group, setGroup] = useState<{
     name: string;
     invite_code: string;
@@ -279,7 +244,18 @@ export default function RoutinesPage({
           .eq("session_token", sessionToken)
           .eq("group_id", groupId)
           .single();
-        if (member) setMemberId(member.id);
+        if (member) {
+          setMemberId(member.id);
+          const { data: reqs } = await supabase
+            .from("member_routine_requirements")
+            .select("routine_type, weekly_target")
+            .eq("member_id", member.id);
+          if (reqs && reqs.length > 0) {
+            const map = { ...DEFAULT_TARGETS };
+            reqs.forEach((r) => { map[r.routine_type] = r.weekly_target; });
+            setMemberTargets(map);
+          }
+        }
       }
 
       const today = todayKST();
@@ -387,6 +363,7 @@ export default function RoutinesPage({
               routine={routine}
               completions={logsByType[routine.type] ?? []}
               memberId={memberId}
+              weeklyTarget={memberTargets[routine.type] ?? DEFAULT_TARGETS[routine.type] ?? 0}
             />
           ))}
 
