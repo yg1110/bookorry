@@ -133,17 +133,13 @@ bookorry/
 
 ## 스크린샷 / 데모
 
-![홈 화면](./docs/images/home.png)
+![홈 화면](./images/home.png)
 
-<!-- TODO: 스크린샷 추가 필요 -->
+![그룹 피드](./images/group-feed.png)
 
-![그룹 피드](./docs/images/group-feed.png)
+![루틴 체크인](./images/routine-checkin.png)
 
-<!-- TODO: 스크린샷 추가 필요 -->
-
-![루틴 체크인](./docs/images/routine-checkin.png)
-
-<!-- TODO: 스크린샷 추가 필요 -->
+![카카오톡 공유](./images/kakao-share.png)
 
 ---
 
